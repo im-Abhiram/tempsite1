@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+
+{% block title %}Superadmin Dashboard &bull; {{ COMPANY_NAME }}{% endblock %}
+{% block page_title %}Executive Control Center{% endblock %}
+{% block breadcrumbs %}Dashboard &bull; Superadmin Overview{% endblock %}
+
+{% block content %}
+<!-- Top Metrics Row -->
+<div class="row g-3 mb-4">
+  <div class="col-xl-3 col-md-6">
+    <div class="stat-card teal">
+      <div class="stat-icon teal">
+        <i class="bi bi-people-fill"></i>
+      </div>
+      <div>
+        <p class="stat-label">Total Workforce</p>
+        <h3 class="stat-value">{{ total_employees }}</h3>
+        <p class="stat-sub"><span class="text-success fw-semibold">{{ active_employees }} Active</span> &bull; {{ inactive_employees }} Inactive</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-md-6">
+    <div class="stat-card green">
+      <div class="stat-icon green">
+        <i class="bi bi-person-check-fill"></i>
+      </div>
+      <div>
+        <p class="stat-label">Today's Attendance</p>
+        <h3 class="stat-value">{{ today_present }}</h3>
+        <p class="stat-sub">{{ today_leave }} on Leave &bull; {{ today_incomplete }} Incomplete</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-md-6">
+    <div class="stat-card navy">
+      <div class="stat-icon navy">
+        <i class="bi bi-person-badge-fill"></i>
+      </div>
+      <div>
+        <p class="stat-label">System Operators</p>
+        <h3 class="stat-value">{{ accountant_count|add:owner_count|add:1 }}</h3>
+        <p class="stat-sub">{{ accountant_count }} Accountants &bull; {{ owner_count }} Owners</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-md-6">
+    <div class="card-portal p-3 h-100">
+      <div class="d-flex align-items-center gap-3">
+        <div class="stat-icon blue" style="width: 44px; height: 44px; font-size: 20px;">
+          <i class="bi bi-hdd-network"></i>
+        </div>
+        <div>
+          <p class="stat-label mb-0">Storage Footprint</p>
+          <h4 class="mb-0 fw-bold">{{ storage.total_size_display }}</h4>
+          <small class="text-muted">DB: {{ storage.db_size_display }} &bull; Media: {{ storage.media_size_display }}</small>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Attendance Chart & Quick Actions Row -->
+<div class="row g-4 mb-4">
+  <!-- Chart.js 14-Day Attendance Trend -->
+  <div class="col-lg-8">
+    <div class="card-portal h-100">
+      <div class="card-header-portal d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-graph-up text-teal"></i>
+          <h6 class="mb-0 fw-bold">14-Day Workforce Attendance Trend</h6>
+        </div>
+        <small class="text-muted">Presents, Absences & Leaves</small>
+      </div>
+      <div class="card-body-portal p-3">
+        <canvas id="superadminAttendanceChart" height="110"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fast Action Hub -->
+  <div class="col-lg-4">
+    <div class="card-portal h-100">
+      <div class="card-header-portal">
+        <i class="bi bi-lightning-charge-fill text-warning"></i>
+        <h6 class="mb-0 fw-bold">Administrative Actions</h6>
+      </div>
+      <div class="card-body-portal d-flex flex-column gap-2 p-3">
+        <a href="{% url 'employees:employee_create' %}" class="btn btn-outline-primary text-start d-flex align-items-center gap-3 p-2" style="border-radius: 8px;">
+          <i class="bi bi-person-plus fs-4 text-teal"></i>
+          <div>
+            <div class="fw-bold" style="font-size: 13px;">Register Employee</div>
+            <small class="text-muted">Onboard personnel & salary</small>
+          </div>
+        </a>
+
+        <a href="{% url 'accounts:user_create' %}" class="btn btn-outline-secondary text-start d-flex align-items-center gap-3 p-2" style="border-radius: 8px;">
+          <i class="bi bi-person-gear fs-4 text-primary"></i>
+          <div>
+            <div class="fw-bold" style="font-size: 13px;">Create Operator Account</div>
+            <small class="text-muted">Accountant or Owner access</small>
+          </div>
+        </a>
+
+        <a href="{% url 'core:backup_dashboard' %}" class="btn btn-outline-secondary text-start d-flex align-items-center gap-3 p-2" style="border-radius: 8px;">
+          <i class="bi bi-database-down fs-4 text-success"></i>
+          <div>
+            <div class="fw-bold" style="font-size: 13px;">Download Backups</div>
+            <small class="text-muted">SQLite & CSV snapshots</small>
+          </div>
+        </a>
+
+        <a href="{% url 'accounts:company_settings' %}" class="btn btn-outline-secondary text-start d-flex align-items-center gap-3 p-2" style="border-radius: 8px;">
+          <i class="bi bi-sliders fs-4 text-navy"></i>
+          <div>
+            <div class="fw-bold" style="font-size: 13px;">Enterprise Settings</div>
+            <small class="text-muted">Overtime multiplier & cycle</small>
+          </div>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Latest Payroll Activity & Recent Audit Events Row -->
+<div class="row g-4 mb-4">
+  <!-- Latest Payroll Cycles -->
+  <div class="col-lg-5">
+    <div class="card-portal h-100">
+      <div class="card-header-portal d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-cash-stack text-warning"></i>
+          <h6 class="mb-0 fw-bold">Latest Payroll Activity</h6>
+        </div>
+        <a href="{% url 'payroll:period_list' %}" class="btn btn-sm btn-link text-decoration-none" style="font-size: 12px;">View All &rarr;</a>
+      </div>
+      <div class="card-body-portal p-0">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0" style="font-size: 13px;">
+            <thead class="table-light">
+              <tr>
+                <th>Period</th>
+                <th>Cycle</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in latest_payroll %}
+              <tr>
+                <td>
+                  <div class="fw-semibold">{{ p.start_date|date:"d M" }} – {{ p.end_date|date:"d M" }}</div>
+                  <small class="text-muted">{{ p.duration_days }} days</small>
+                </td>
+                <td>{{ p.get_cycle_type_display }}</td>
+                <td>
+                  {% if p.status == 'FINALIZED' %}
+                    <span class="badge bg-success-subtle text-success border border-success-subtle">Finalized</span>
+                  {% elif p.status == 'REVIEWED' %}
+                    <span class="badge bg-info-subtle text-info border border-info-subtle">Reviewed</span>
+                  {% else %}
+                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle">Draft</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="3" class="text-center py-4 text-muted">No payroll activity recorded yet.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Audit Events -->
+  <div class="col-lg-7">
+    <div class="card-portal h-100">
+      <div class="card-header-portal d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-journal-text text-teal"></i>
+          <h6 class="mb-0 fw-bold">Recent System Audit Trail</h6>
+        </div>
+        <a href="{% url 'audit:log_list' %}" class="btn btn-sm btn-link text-decoration-none" style="font-size: 12px;">View Full Log &rarr;</a>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" style="font-size: 12.5px;">
+          <thead class="table-light">
+            <tr>
+              <th>Timestamp</th>
+              <th>Action</th>
+              <th>Actor</th>
+              <th>IP Address</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for evt in recent_events %}
+            <tr>
+              <td class="text-muted small" style="white-space: nowrap;">
+                {{ evt.timestamp|date:"d M, H:i" }}
+              </td>
+              <td>
+                <span class="badge bg-light text-dark border font-monospace">{{ evt.action }}</span>
+              </td>
+              <td>
+                {% if evt.actor %}
+                  <span class="fw-semibold text-navy">{{ evt.actor.username }}</span>
+                {% else %}
+                  <span class="text-muted fst-italic">{{ evt.actor_username|default:"System" }}</span>
+                {% endif %}
+              </td>
+              <td class="text-muted small">{{ evt.ip_address }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="4" class="text-center py-4 text-muted">No audit events recorded yet.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const ctx = document.getElementById("superadminAttendanceChart");
+  if (ctx) {
+    const labels = {{ chart_labels|safe }};
+    const presentData = {{ chart_present|safe }};
+    const absentData = {{ chart_absent|safe }};
+    const leaveData = {{ chart_leave|safe }};
+
+    new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: "Present",
+            data: presentData,
+            backgroundColor: "#0d9488",
+            borderRadius: 4,
+          },
+          {
+            label: "Leave",
+            data: leaveData,
+            backgroundColor: "#f59e0b",
+            borderRadius: 4,
+          },
+          {
+            label: "Absent",
+            data: absentData,
+            backgroundColor: "#ef4444",
+            borderRadius: 4,
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: "top", labels: { boxWidth: 12, font: { size: 12 } } },
+        },
+        scales: {
+          x: { stacked: true, grid: { display: false } },
+          y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } }
+        }
+      }
+    });
+  }
+});
+</script>
+{% endblock %}

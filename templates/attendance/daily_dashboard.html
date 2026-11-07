@@ -1,0 +1,304 @@
+{% extends "base.html" %}
+
+{% block title %}Daily Attendance Tracker &bull; {{ COMPANY_NAME }}{% endblock %}
+{% block page_title %}Daily Attendance Tracker{% endblock %}
+{% block breadcrumbs %}Attendance &bull; Daily Tracker ({{ work_date|date:"D, d M Y" }}){% endblock %}
+
+{% block content %}
+<!-- Top Header & Date Navigation -->
+<div class="card-portal mb-4">
+  <div class="card-body-portal p-3">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+      <div class="d-flex align-items-center gap-2">
+        <form method="get" class="d-flex align-items-center gap-2 m-0">
+          <label for="workDateInput" class="fw-semibold small text-muted text-nowrap">Select Date:</label>
+          <input type="date" id="workDateInput" name="date" value="{{ work_date|date:'Y-m-d' }}" class="form-control form-control-sm" onchange="this.form.submit()">
+          <button type="submit" class="btn btn-sm btn-outline-secondary">Go</button>
+        </form>
+        {% if work_date != today %}
+          <a href="{% url 'attendance:daily_dashboard' %}" class="btn btn-sm btn-outline-teal">Jump to Today</a>
+        {% endif %}
+      </div>
+
+      <div class="d-flex flex-wrap align-items-center gap-2">
+        {% if not is_owner %}
+          {% if summary.unmarked > 0 %}
+          <form method="post" action="{% url 'attendance:quick_mark' %}" class="d-inline">
+            {% csrf_token %}
+            <input type="hidden" name="work_date" value="{{ work_date|date:'Y-m-d' }}">
+            <input type="hidden" name="action_type" value="bulk_all_pending">
+            <button type="submit" class="btn btn-success btn-sm d-flex align-items-center gap-1 shadow-sm" title="Single click to mark all {{ summary.unmarked }} remaining employees present with standard shift hours">
+              <i class="bi bi-check2-all"></i> Mark All ({{ summary.unmarked }}) as Present
+            </button>
+          </form>
+          {% endif %}
+          <a href="{% url 'attendance:attendance_mark' %}?date={{ work_date|date:'Y-m-d' }}" class="btn btn-teal btn-sm d-flex align-items-center gap-1 shadow-sm" title="Open full manual attendance log to enter custom hours, overtime, or remarks">
+            <i class="bi bi-pencil-square"></i> Manual Attendance Log
+          </a>
+        {% endif %}
+        <a href="{% url 'reports:attendance_excel' %}?date_from={{ work_date|date:'Y-m-d' }}&date_to={{ work_date|date:'Y-m-d' }}" class="btn btn-outline-success btn-sm d-flex align-items-center gap-1">
+          <i class="bi bi-file-earmark-excel"></i> Export Day
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Daily Status Stats Row -->
+<div class="row g-3 mb-4">
+  <div class="col-xl-2 col-md-4 col-6">
+    <div class="stat-card green p-3">
+      <div class="stat-icon green" style="width: 40px; height: 40px; font-size: 18px;">
+        <i class="bi bi-check2-circle"></i>
+      </div>
+      <div>
+        <p class="stat-label">Present</p>
+        <h4 class="stat-value" style="font-size: 22px;">{{ summary.present }}</h4>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-2 col-md-4 col-6">
+    <div class="stat-card {% if summary.unmarked > 0 %}amber{% else %}teal{% endif %} p-3">
+      <div class="stat-icon {% if summary.unmarked > 0 %}amber{% else %}teal{% endif %}" style="width: 40px; height: 40px; font-size: 18px;">
+        <i class="bi bi-hourglass-top"></i>
+      </div>
+      <div>
+        <p class="stat-label">Pending / Unmarked</p>
+        <h4 class="stat-value" style="font-size: 22px;">{{ summary.unmarked }}</h4>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-2 col-md-4 col-6">
+    <div class="stat-card amber p-3">
+      <div class="stat-icon amber" style="width: 40px; height: 40px; font-size: 18px;">
+        <i class="bi bi-hourglass-split"></i>
+      </div>
+      <div>
+        <p class="stat-label">Half Day</p>
+        <h4 class="stat-value" style="font-size: 22px;">{{ summary.half_day }}</h4>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-2 col-md-4 col-6">
+    <div class="stat-card red p-3">
+      <div class="stat-icon red" style="width: 40px; height: 40px; font-size: 18px;">
+        <i class="bi bi-x-circle"></i>
+      </div>
+      <div>
+        <p class="stat-label">Absent</p>
+        <h4 class="stat-value" style="font-size: 22px;">{{ summary.absent }}</h4>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-2 col-md-4 col-6">
+    <div class="stat-card blue p-3">
+      <div class="stat-icon blue" style="width: 40px; height: 40px; font-size: 18px;">
+        <i class="bi bi-exclamation-diamond"></i>
+      </div>
+      <div>
+        <p class="stat-label">Incomplete</p>
+        <h4 class="stat-value" style="font-size: 22px;">{{ summary.incomplete }}</h4>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-2 col-md-4 col-6">
+    <div class="stat-card navy p-3">
+      <div class="stat-icon navy" style="width: 40px; height: 40px; font-size: 18px;">
+        <i class="bi bi-alarm"></i>
+      </div>
+      <div>
+        <p class="stat-label">Late Arrivals</p>
+        <h4 class="stat-value" style="font-size: 22px;">{{ summary.late }}</h4>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Attendance Records Table -->
+<div class="card-portal">
+  <div class="card-header-portal d-flex justify-content-between align-items-center">
+    <div class="d-flex align-items-center gap-2">
+      <i class="bi bi-calendar2-check text-teal"></i>
+      <h6 class="mb-0 fw-bold">Active Staff Attendance Roster for {{ work_date|date:"l, d F Y" }}</h6>
+    </div>
+    <input type="text" data-table-filter="dailyAttendanceTable" class="form-control form-control-sm w-auto" placeholder="Quick search employee...">
+  </div>
+
+  <div class="table-responsive">
+    <table class="table-portal align-middle mb-0" id="dailyAttendanceTable">
+      <thead>
+        <tr>
+          <th>Employee</th>
+          <th>ID</th>
+          <th>Department</th>
+          <th>Check-In</th>
+          <th>Check-Out</th>
+          <th>Net Hours</th>
+          <th>Overtime</th>
+          <th>Status & Remarks</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in roster_items %}
+        {% with emp=item.employee rec=item.record %}
+        <tr>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              {% if emp.photo %}
+                <img src="{{ emp.photo.url }}" alt="{{ emp.full_name }}" class="rounded-circle object-fit-cover border" style="width: 32px; height: 32px;">
+              {% else %}
+                <div class="user-avatar" style="width: 32px; height: 32px; font-size: 12px; background: #1B2E48; color: #5EEAD4; border-radius: 50%; display: grid; place-items: center; font-weight: 700;">
+                  {{ emp.first_name|slice:":1"|upper }}{{ emp.last_name|slice:":1"|upper }}
+                </div>
+              {% endif %}
+              <div>
+                <a href="{% url 'employees:employee_detail' emp.pk %}" class="fw-bold text-navy text-decoration-none">
+                  {{ emp.full_name }}
+                </a>
+                {% if rec and rec.is_late %}
+                  <span class="badge bg-warning text-dark ms-1" style="font-size: 10px;" title="Clocked in past grace period">
+                    <i class="bi bi-alarm me-1"></i>Late
+                  </span>
+                {% endif %}
+              </div>
+            </div>
+          </td>
+          <td>
+            <span class="badge bg-light text-navy border font-monospace">{{ emp.employee_id }}</span>
+          </td>
+          <td>
+            <span class="small text-muted">{{ emp.department.name|default:"General" }}</span>
+          </td>
+          <td>
+            {% if rec and rec.check_in %}
+              <span class="font-monospace fw-semibold">{{ rec.check_in|time:"H:i" }}</span>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if rec and rec.check_out %}
+              <span class="font-monospace fw-semibold">{{ rec.check_out|time:"H:i" }}</span>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if rec %}
+              <span class="fw-bold text-navy">{{ rec.net_working_hours }} hrs</span>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if rec and rec.overtime_hours > 0 %}
+              <span class="badge bg-info-subtle text-info border border-info-subtle font-monospace">+{{ rec.overtime_hours }} hrs</span>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if item.is_marked %}
+              {% if rec.status == 'PRESENT' %}
+                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">Present</span>
+              {% elif rec.status == 'HALF_DAY' %}
+                <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1">Half Day</span>
+              {% elif rec.status == 'ABSENT' %}
+                <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">Absent</span>
+              {% elif rec.status == 'INCOMPLETE' %}
+                <span class="badge bg-danger text-white px-2 py-1">Incomplete</span>
+              {% elif rec.status == 'PAID_LEAVE' %}
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">Paid Leave</span>
+              {% else %}
+                <span class="badge bg-light text-dark border px-2 py-1">{{ rec.get_status_display }}</span>
+              {% endif %}
+
+              {% if rec.correction_reason %}
+                <span class="badge bg-light text-secondary border ms-1" style="cursor: help;" title="{{ rec.correction_reason }}">
+                  <i class="bi bi-chat-left-text text-teal me-1"></i>{{ rec.correction_reason|truncatechars:20 }}
+                </span>
+              {% endif %}
+
+              {% if rec.is_locked_by_payroll %}
+                <i class="bi bi-lock-fill text-muted ms-1" title="Locked by finalized payroll"></i>
+              {% endif %}
+            {% else %}
+              <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1">
+                <i class="bi bi-hourglass me-1"></i>Not Marked
+              </span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            {% if item.is_marked %}
+              <div class="btn-group btn-group-sm">
+                {% if not is_owner and rec.status == 'INCOMPLETE' and not rec.is_locked_by_payroll %}
+                <form method="post" action="{% url 'attendance:quick_mark' %}" class="d-inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="employee_pk" value="{{ emp.pk }}">
+                  <input type="hidden" name="work_date" value="{{ work_date|date:'Y-m-d' }}">
+                  <input type="hidden" name="action_type" value="clock_out">
+                  <button type="submit" class="btn btn-warning btn-sm py-1 px-2 fw-semibold me-1" title="Clock out now">
+                    <i class="bi bi-box-arrow-right me-1"></i>Clock Out
+                  </button>
+                </form>
+                {% endif %}
+
+                <a href="{% url 'attendance:attendance_detail' rec.pk %}" class="btn btn-outline-secondary" title="View Punch Detail">
+                  <i class="bi bi-eye"></i>
+                </a>
+                {% if not is_owner and not rec.is_locked_by_payroll %}
+                <a href="{% url 'attendance:attendance_correct' rec.pk %}" class="btn btn-outline-teal" title="Edit Punch / Add Overtime or Remarks">
+                  <i class="bi bi-pencil-square"></i>
+                </a>
+                {% endif %}
+              </div>
+            {% else %}
+              {% if not is_owner %}
+              <div class="d-inline-flex gap-1">
+                <!-- Single button for marking attendance outside -->
+                <form method="post" action="{% url 'attendance:quick_mark' %}" class="d-inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="employee_pk" value="{{ emp.pk }}">
+                  <input type="hidden" name="work_date" value="{{ work_date|date:'Y-m-d' }}">
+                  <input type="hidden" name="action_type" value="mark_present">
+                  <button type="submit" class="btn btn-sm btn-success py-1 px-2 fw-semibold d-inline-flex align-items-center gap-1 shadow-sm" title="Single click to mark Present with shift hours">
+                    <i class="bi bi-check2-circle"></i> Mark Present
+                  </button>
+                </form>
+
+                <!-- Link to manual log if accountant needed to add overtime or remarks -->
+                <a href="{% url 'attendance:attendance_mark_emp' emp.pk %}?date={{ work_date|date:'Y-m-d' }}" class="btn btn-sm btn-outline-teal py-1 px-2" title="Open Manual Log to enter custom overtime or remarks">
+                  <i class="bi bi-pencil-square me-1"></i>Manual Log
+                </a>
+              </div>
+              {% else %}
+                <span class="text-muted small">Not marked</span>
+              {% endif %}
+            {% endif %}
+          </td>
+        </tr>
+        {% endwith %}
+        {% empty %}
+        <tr>
+          <td colspan="9" class="text-center py-5 text-muted">
+            <div class="mb-2"><i class="bi bi-people fs-1 text-muted"></i></div>
+            <div>No active employees registered in the system.</div>
+            {% if not is_owner %}
+            <a href="{% url 'employees:employee_create' %}" class="btn btn-primary btn-sm mt-3">
+              <i class="bi bi-person-plus me-1"></i> Add Employee
+            </a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Correct Attendance &bull; {{ COMPANY_NAME }}{% endblock %}
+{% block page_title %}Audit-Logged Attendance Correction{% endblock %}
+{% block breadcrumbs %}Attendance &bull; <a href="{% url 'attendance:attendance_detail' record.pk %}">Record #{{ record.pk }}</a> &bull; Correction{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7 col-md-9">
+    <div class="card-portal">
+      <div class="card-header-portal">
+        <div class="stat-icon amber" style="width: 38px; height: 38px; font-size: 18px;">
+          <i class="bi bi-pencil-square"></i>
+        </div>
+        <div>
+          <h5 class="mb-0 fw-bold" style="font-size: 15px;">Correct Attendance Punch</h5>
+          <small class="text-muted">A permanent correction log and audit trail entry will be generated.</small>
+        </div>
+      </div>
+      <div class="card-body-portal">
+        <!-- Record Reference Details -->
+        <div class="p-3 bg-light rounded border mb-4">
+          <div class="row g-2" style="font-size: 13px;">
+            <div class="col-sm-6">
+              <span class="text-muted">Employee:</span>
+              <strong class="text-navy ms-1">{{ record.employee.full_name }} ({{ record.employee.employee_id }})</strong>
+            </div>
+            <div class="col-sm-6">
+              <span class="text-muted">Work Date:</span>
+              <strong class="text-navy ms-1">{{ record.work_date|date:"l, d M Y" }}</strong>
+            </div>
+            <div class="col-sm-6">
+              <span class="text-muted">Current Status:</span>
+              <span class="badge bg-light text-dark border ms-1">{{ record.get_status_display }}</span>
+            </div>
+            <div class="col-sm-6">
+              <span class="text-muted">Calculated Net Hours:</span>
+              <strong class="text-teal ms-1">{{ record.net_working_hours }} hrs</strong>
+            </div>
+          </div>
+        </div>
+
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger py-2 px-3 mb-3" style="font-size: 13px;">
+            {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+          </div>
+        {% endif %}
+
+        <form method="post" class="needs-double-submit-guard">
+          {% csrf_token %}
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label for="id_check_in_time" class="form-label fw-semibold" style="font-size: 13px;">Correct Check-In Time</label>
+              {{ form.check_in_time }}
+              {% if form.check_in_time.errors %}<div class="text-danger small mt-1">{% for e in form.check_in_time.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+            <div class="col-md-6">
+              <label for="id_check_out_time" class="form-label fw-semibold" style="font-size: 13px;">Correct Check-Out Time</label>
+              {{ form.check_out_time }}
+              {% if form.check_out_time.errors %}<div class="text-danger small mt-1">{% for e in form.check_out_time.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label for="id_status" class="form-label fw-semibold" style="font-size: 13px;">Correct Status *</label>
+              {{ form.status }}
+              {% if form.status.errors %}<div class="text-danger small mt-1">{% for e in form.status.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+            <div class="col-md-6">
+              <label for="id_break_duration_minutes" class="form-label fw-semibold" style="font-size: 13px;">Unpaid Break (Minutes)</label>
+              {{ form.break_duration_minutes }}
+              {% if form.break_duration_minutes.errors %}<div class="text-danger small mt-1">{% for e in form.break_duration_minutes.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6 d-flex align-items-center">
+              <div class="form-check mt-3">
+                {{ form.is_overnight }}
+                <label for="id_is_overnight" class="form-check-label fw-semibold" style="font-size: 13px;">Overnight Shift (check-out next day)</label>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label for="id_overtime_hours" class="form-label fw-semibold" style="font-size: 13px;">
+                <i class="bi bi-lightning-charge text-warning me-1"></i>Adjusted Overtime Hours
+              </label>
+              {{ form.overtime_hours }}
+              <small class="text-muted d-block mt-1">Leave blank to recalculate automatically from punch times.</small>
+              {% if form.overtime_hours.errors %}<div class="text-danger small mt-1">{% for e in form.overtime_hours.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label for="id_correction_reason" class="form-label fw-semibold" style="font-size: 13px;">Mandatory Correction Reason *</label>
+            {{ form.correction_reason }}
+            <small class="text-muted d-block mt-1">Minimum 10 characters explaining why this punch or status was amended.</small>
+            {% if form.correction_reason.errors %}<div class="text-danger small mt-1">{% for e in form.correction_reason.errors %}{{ e }}{% endfor %}</div>{% endif %}
+          </div>
+
+          <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+            <a href="{% url 'attendance:attendance_detail' record.pk %}" class="btn btn-light border px-4">Cancel</a>
+            <button type="submit" class="btn btn-warning px-4">
+              <i class="bi bi-check-lg me-1"></i> Apply & Log Correction
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Work Shifts &bull; {{ COMPANY_NAME }}{% endblock %}
+{% block page_title %}Shift Schedule Definitions{% endblock %}
+{% block breadcrumbs %}Workforce &bull; Shifts{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+  <div>
+    <h4 class="mb-1 fw-bold text-navy">Work Shifts</h4>
+    <p class="text-muted small mb-0">Shift timings, overnight designations, and unpaid break deductions.</p>
+  </div>
+  {% if not is_owner %}
+  <a href="{% url 'employees:shift_create' %}" class="btn btn-primary d-flex align-items-center gap-2 shadow-sm">
+    <i class="bi bi-plus-lg"></i>
+    <span>Add Work Shift</span>
+  </a>
+  {% endif %}
+</div>
+
+<div class="card-portal">
+  <div class="table-responsive">
+    <table class="table-portal align-middle">
+      <thead>
+        <tr>
+          <th>Shift Name</th>
+          <th>Start Time</th>
+          <th>End Time</th>
+          <th>Unpaid Break</th>
+          <th>Overnight / Night Shift</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in shifts %}
+        <tr>
+          <td>
+            <div class="fw-bold text-navy"><i class="bi bi-clock-history me-2 text-teal"></i>{{ s.name }}</div>
+          </td>
+          <td>
+            <span class="badge bg-light text-navy border font-monospace px-2 py-1">{{ s.start_time|time:"H:i" }}</span>
+          </td>
+          <td>
+            <span class="badge bg-light text-navy border font-monospace px-2 py-1">{{ s.end_time|time:"H:i" }}</span>
+          </td>
+          <td>
+            <span class="text-muted small">{{ s.unpaid_break_minutes }} Minutes</span>
+          </td>
+          <td>
+            {% if s.is_night_shift %}
+              <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">
+                <i class="bi bi-moon-stars me-1"></i>Overnight Shift
+              </span>
+            {% else %}
+              <span class="badge bg-light text-muted border px-2 py-1">Day Shift</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if s.is_active %}
+              <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">Active</span>
+            {% else %}
+              <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1">Inactive</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6" class="text-center py-4 text-muted">No shifts defined yet.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

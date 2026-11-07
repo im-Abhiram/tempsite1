@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Update Salary Rate for {{ employee.full_name }} &bull; {{ COMPANY_NAME }}{% endblock %}
+{% block page_title %}Adjust Compensation Rate{% endblock %}
+{% block breadcrumbs %}Workforce &bull; <a href="{% url 'employees:employee_detail' employee.pk %}">{{ employee.full_name }}</a> &bull; Adjust Salary{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7 col-md-9">
+    <div class="card-portal mb-4">
+      <div class="card-header-portal">
+        <div class="stat-icon green" style="width: 38px; height: 38px; font-size: 18px;">
+          <i class="bi bi-currency-rupee"></i>
+        </div>
+        <div>
+          <h5 class="mb-0 fw-bold" style="font-size: 15px;">Salary Rate Adjustment</h5>
+          <small class="text-muted">Updates the employee rate and records a permanent audit history entry.</small>
+        </div>
+      </div>
+      <div class="card-body-portal">
+        <!-- Current Rate Context Box -->
+        <div class="p-3 bg-light rounded border mb-4">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <div class="fw-bold text-navy">{{ employee.full_name }} ({{ employee.employee_id }})</div>
+              <small class="text-muted">Current Method: <strong>{{ employee.get_salary_calculation_method_display }}</strong></small>
+            </div>
+            <div class="text-end">
+              <span class="text-muted small">Current Base Rate</span>
+              <div class="fw-bold text-teal fs-5">{{ CURRENCY_SYMBOL }} {{ employee.base_salary_rate|floatformat:2 }}</div>
+            </div>
+          </div>
+        </div>
+
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger py-2 px-3 mb-3" style="font-size: 13px;">
+            {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+          </div>
+        {% endif %}
+
+        <form method="post" class="needs-double-submit-guard">
+          {% csrf_token %}
+
+          <div class="mb-3">
+            <label for="id_effective_date" class="form-label fw-semibold" style="font-size: 13px;">Effective Date *</label>
+            {{ form.effective_date }}
+            <small class="text-muted d-block mt-1">Date from which this new pay rate applies.</small>
+            {% if form.effective_date.errors %}<div class="text-danger small mt-1">{% for e in form.effective_date.errors %}{{ e }}{% endfor %}</div>{% endif %}
+          </div>
+
+          <div class="mb-3">
+            <label for="id_salary_calculation_method" class="form-label fw-semibold" style="font-size: 13px;">Salary Calculation Method *</label>
+            {{ form.salary_calculation_method }}
+            {% if form.salary_calculation_method.errors %}<div class="text-danger small mt-1">{% for e in form.salary_calculation_method.errors %}{{ e }}{% endfor %}</div>{% endif %}
+          </div>
+
+          <div class="mb-3">
+            <label for="id_base_rate" class="form-label fw-semibold" style="font-size: 13px;">New Base Rate ({{ CURRENCY_SYMBOL }}) *</label>
+            {{ form.base_rate }}
+            <small class="text-muted d-block mt-1">Hourly, Daily Wage, or Monthly Salaried base rate.</small>
+            {% if form.base_rate.errors %}<div class="text-danger small mt-1">{% for e in form.base_rate.errors %}{{ e }}{% endfor %}</div>{% endif %}
+          </div>
+
+          <div class="mb-3">
+            <label for="id_overtime_rate" class="form-label fw-semibold" style="font-size: 13px;">Custom Overtime Rate ({{ CURRENCY_SYMBOL }})</label>
+            {{ form.overtime_rate }}
+            <small class="text-muted d-block mt-1">Leave empty to use company multiplier.</small>
+            {% if form.overtime_rate.errors %}<div class="text-danger small mt-1">{% for e in form.overtime_rate.errors %}{{ e }}{% endfor %}</div>{% endif %}
+          </div>
+
+          <div class="mb-4">
+            <label for="id_reason" class="form-label fw-semibold" style="font-size: 13px;">Reason for Revision *</label>
+            {{ form.reason }}
+            <small class="text-muted d-block mt-1">e.g., Annual appraisal, promotion, probation confirmation.</small>
+            {% if form.reason.errors %}<div class="text-danger small mt-1">{% for e in form.reason.errors %}{{ e }}{% endfor %}</div>{% endif %}
+          </div>
+
+          <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+            <a href="{% url 'employees:employee_detail' employee.pk %}" class="btn btn-light border px-4">Cancel</a>
+            <button type="submit" class="btn btn-primary px-4">
+              <i class="bi bi-check-lg me-1"></i> Apply & Log Salary Update
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

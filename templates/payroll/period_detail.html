@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+
+{% block title %}Payroll Period {{ period.start_date|date:"d M" }} – {{ period.end_date|date:"d M Y" }} &bull; {{ COMPANY_NAME }}{% endblock %}
+{% block page_title %}Payroll Period Summary{% endblock %}
+{% block breadcrumbs %}Payroll &bull; <a href="{% url 'payroll:period_list' %}">Periods</a> &bull; {{ period.start_date|date:"d M" }} – {{ period.end_date|date:"d M Y" }}{% endblock %}
+
+{% block content %}
+<!-- Period Summary Header Card -->
+<div class="card-portal mb-4">
+  <div class="card-body-portal p-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+      <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <h3 class="mb-0 fw-bold text-navy" style="font-size: 20px;">
+            {{ period.get_cycle_type_display }} Payroll ({{ period.start_date|date:"d M Y" }} – {{ period.end_date|date:"d M Y" }})
+          </h3>
+          {% if period.status == 'DRAFT' %}
+            <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1">Draft</span>
+          {% elif period.status == 'REVIEWED' %}
+            <span class="badge bg-info-subtle text-info border border-info-subtle px-2 py-1">Reviewed</span>
+          {% elif period.status == 'FINALIZED' %}
+            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">Finalized & Locked</span>
+          {% else %}
+            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">Reversed</span>
+          {% endif %}
+        </div>
+        <div class="text-secondary small">
+          Generated on {{ period.created_at|date:"d M Y, H:i" }} by <strong>{{ period.created_by.username|default:"System" }}</strong>
+          {% if period.finalized_by %} &bull; Finalized by <strong>{{ period.finalized_by.username }}</strong> on {{ period.finalized_at|date:"d M Y" }}{% endif %}
+        </div>
+        {% if period.notes %}<div class="text-muted small mt-1 font-italic">{{ period.notes|linebreaksbr }}</div>{% endif %}
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="d-flex flex-wrap gap-2">
+        {% if can_review %}
+          <a href="{% url 'payroll:review' period.pk %}" class="btn btn-outline-info d-flex align-items-center gap-1 shadow-sm">
+            <i class="bi bi-check2-circle"></i> Review Draft
+          </a>
+        {% endif %}
+        {% if can_finalize %}
+          <a href="{% url 'payroll:finalize' period.pk %}" class="btn btn-success d-flex align-items-center gap-1 shadow-sm">
+            <i class="bi bi-lock-fill"></i> Finalize Payroll
+          </a>
+        {% endif %}
+        {% if period.status == 'FINALIZED' %}
+          <a href="{% url 'reports:payroll_pdf' period.pk %}" class="btn btn-outline-danger d-flex align-items-center gap-1">
+            <i class="bi bi-file-earmark-pdf"></i> PDF Summary
+          </a>
+          <a href="{% url 'reports:payroll_excel' period.pk %}" class="btn btn-outline-success d-flex align-items-center gap-1">
+            <i class="bi bi-file-earmark-excel"></i> Excel Ledger
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Aggregated Totals Row -->
+<div class="row g-3 mb-4">
+  <div class="col-xl-3 col-md-6">
+    <div class="stat-card teal">
+      <div class="stat-icon teal">
+        <i class="bi bi-cash-stack"></i>
+      </div>
+      <div>
+        <p class="stat-label">Total Net Pay</p>
+        <h3 class="stat-value text-teal">{{ CURRENCY_SYMBOL }} {{ totals.total_net|default:period.total_net_pay|floatformat:2 }}</h3>
+        <p class="stat-sub">Net Outlay to Disburse</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-md-6">
+    <div class="stat-card navy">
+      <div class="stat-icon navy">
+        <i class="bi bi-wallet2"></i>
+      </div>
+      <div>
+        <p class="stat-label">Total Gross Wages</p>
+        <h3 class="stat-value">{{ CURRENCY_SYMBOL }} {{ totals.total_gross|default:period.total_gross_pay|floatformat:2 }}</h3>
+        <p class="stat-sub">Base Wages & Allowances</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-md-6">
+    <div class="stat-card amber">
+      <div class="stat-icon amber">
+        <i class="bi bi-lightning-charge"></i>
+      </div>
+      <div>
+        <p class="stat-label">Total Overtime Pay</p>
+        <h3 class="stat-value text-warning">{{ CURRENCY_SYMBOL }} {{ totals.total_overtime|default:period.total_overtime_pay|floatformat:2 }}</h3>
+        <p class="stat-sub">Calculated Extra Hours</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-md-6">
+    <div class="stat-card blue">
+      <div class="stat-icon blue">
+        <i class="bi bi-people-fill"></i>
+      </div>
+      <div>
+        <p class="stat-label">Enrolled Employees</p>
+        <h3 class="stat-value">{{ period.statements.count }}</h3>
+        <p class="stat-sub">Staff Statements Generated</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Statements Breakdown or Executive Aggregate -->
+{% if statements %}
+<div class="card-portal">
+  <div class="card-header-portal d-flex justify-content-between align-items-center">
+    <div class="d-flex align-items-center gap-2">
+      <i class="bi bi-card-checklist text-teal"></i>
+      <h6 class="mb-0 fw-bold">Individual Employee Statements</h6>
+    </div>
+    <input type="text" data-table-filter="payrollStatementsTable" class="form-control form-control-sm w-auto" placeholder="Search employee...">
+  </div>
+
+  <div class="table-responsive">
+    <table class="table-portal align-middle mb-0" id="payrollStatementsTable">
+      <thead>
+        <tr>
+          <th>Employee</th>
+          <th>ID</th>
+          <th>Department</th>
+          <th>Method</th>
+          <th>Gross Pay</th>
+          <th>Overtime Pay</th>
+          <th>Deductions</th>
+          <th>Net Pay</th>
+          <th class="text-end">Statement</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for stmt in statements %}
+        <tr>
+          <td>
+            <a href="{% url 'payroll:statement_detail' stmt.pk %}" class="fw-bold text-navy text-decoration-none">
+              {{ stmt.employee.full_name }}
+            </a>
+          </td>
+          <td>
+            <span class="badge bg-light text-navy border font-monospace">{{ stmt.employee.employee_id }}</span>
+          </td>
+          <td>
+            <span class="text-muted small">{{ stmt.employee.department.name|default:"General" }}</span>
+          </td>
+          <td>
+            <span class="small">{{ stmt.employee.get_salary_calculation_method_display }}</span>
+          </td>
+          <td class="fw-semibold">
+            {{ CURRENCY_SYMBOL }} {{ stmt.gross_pay|floatformat:2 }}
+          </td>
+          <td>
+            {% if stmt.overtime_pay > 0 %}
+              <span class="badge bg-warning-subtle text-dark border font-monospace">+{{ CURRENCY_SYMBOL }} {{ stmt.overtime_pay|floatformat:2 }}</span>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td class="text-danger small">
+            -{{ CURRENCY_SYMBOL }} {{ stmt.total_deductions|floatformat:2 }}
+          </td>
+          <td>
+            <strong class="text-success fs-6">{{ CURRENCY_SYMBOL }} {{ stmt.net_pay|floatformat:2 }}</strong>
+          </td>
+          <td class="text-end">
+            <a href="{% url 'payroll:statement_detail' stmt.pk %}" class="btn btn-outline-secondary btn-sm" title="View Payslip">
+              <i class="bi bi-file-text"></i> Payslip
+            </a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="9" class="text-center py-4 text-muted">No individual statements generated.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<!-- Executive Owner View: Summary Only -->
+<div class="card-portal">
+  <div class="card-header-portal">
+    <i class="bi bi-shield-check text-navy"></i>
+    <h6 class="mb-0 fw-bold">Executive Financial Aggregate</h6>
+  </div>
+  <div class="card-body-portal p-4 text-center">
+    <p class="text-muted">Per company governance policy, detailed individual salary breakdowns are restricted to authorized Payroll Officers. Executive aggregate outlay figures are shown in the stat cards above.</p>
+    {% if company_settings.allow_owner_export and period.status == 'FINALIZED' %}
+    <div class="d-flex justify-content-center gap-3 mt-3">
+      <a href="{% url 'reports:payroll_pdf' period.pk %}" class="btn btn-outline-danger">
+        <i class="bi bi-file-earmark-pdf me-1"></i> Download Executive PDF Summary
+      </a>
+      <a href="{% url 'reports:payroll_excel' period.pk %}" class="btn btn-outline-success">
+        <i class="bi bi-file-earmark-excel me-1"></i> Download Company Excel Sheet
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

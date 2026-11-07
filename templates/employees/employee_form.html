@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+
+{% block title %}{{ action }} &bull; {{ COMPANY_NAME }}{% endblock %}
+{% block page_title %}{{ action }}{% endblock %}
+{% block breadcrumbs %}Workforce &bull; <a href="{% url 'employees:employee_list' %}">Employees</a> &bull; {{ action }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-10 col-xl-9">
+    <div class="card-portal">
+      <div class="card-header-portal">
+        <div class="stat-icon teal" style="width: 38px; height: 38px; font-size: 18px;">
+          <i class="bi bi-person-badge"></i>
+        </div>
+        <div>
+          <h5 class="mb-0 fw-bold" style="font-size: 15px;">{{ action }}</h5>
+          <small class="text-muted">Fill in employee details, contract terms, assigned shift, and salary rates.</small>
+        </div>
+      </div>
+      <div class="card-body-portal">
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger py-2 px-3 mb-3" style="font-size: 13px;">
+            {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+          </div>
+        {% endif %}
+
+        <form method="post" enctype="multipart/form-data" class="needs-double-submit-guard">
+          {% csrf_token %}
+
+          <!-- Section 1: Personal Information -->
+          <h6 class="fw-bold text-navy pb-2 border-bottom mb-3">
+            <i class="bi bi-person me-1 text-teal"></i> 1. Personal Identity & Photo
+          </h6>
+          <div class="row g-3 mb-4">
+            <div class="col-md-4">
+              <label for="id_first_name" class="form-label fw-semibold" style="font-size: 13px;">First Name *</label>
+              {{ form.first_name }}
+              {% if form.first_name.errors %}<div class="text-danger small mt-1">{% for e in form.first_name.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+            <div class="col-md-4">
+              <label for="id_last_name" class="form-label fw-semibold" style="font-size: 13px;">Last Name *</label>
+              {{ form.last_name }}
+              {% if form.last_name.errors %}<div class="text-danger small mt-1">{% for e in form.last_name.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+            <div class="col-md-4">
+              <label for="id_gender" class="form-label fw-semibold" style="font-size: 13px;">Gender</label>
+              {{ form.gender }}
+              {% if form.gender.errors %}<div class="text-danger small mt-1">{% for e in form.gender.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+            <div class="col-md-4">
+              <label for="id_date_of_birth" class="form-label fw-semibold" style="font-size: 13px;">Date of Birth</label>
+              {{ form.date_of_birth }}
+              {% if form.date_of_birth.errors %}<div class="text-danger small mt-1">{% for e in form.date_of_birth.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+            <div class="col-md-8">
+              <label for="id_photo" class="form-label fw-semibold" style="font-size: 13px;">Employee Photo (Max 2MB)</label>
+              {{ form.photo }}
+              {% if form.photo.errors %}<div class="text-danger small mt-1">{% for e in form.photo.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+          </div>
+
+          <!-- Section 2: Contact Information -->
+          <h6 class="fw-bold text-navy pb-2 border-bottom mb-3">
+            <i class="bi bi-telephone me-1 text-teal"></i> 2. Contact & Emergency Details
+          </h6>
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <label for="id_phone" class="form-label fw-semibold" style="font-size: 13px;">Phone Number *</label>
+              {{ form.phone }}
+              {% if form.phone.errors %}<div class="text-danger small mt-1">{% for e in form.phone.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+            <div class="col-md-6">
+              <label for="id_email" class="form-label fw-semibold" style="font-size: 13px;">Email Address</label>
+              {{ form.email }}
+              {% if form.email.errors %}<div class="text-danger small mt-1">{% for e in form.email.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+            <div class="col-md-12">
+              <label for="id_residential_address" class="form-label fw-semibold" style="font-size: 13px;">Residential Address</label>
+              {{ form.residential_address }}
+              {% if form.residential_address.errors %}<div class="text-danger small mt-1">{% for e in form.residential_address.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+            <div class="col-md-6">
+              <label for="id_emergency_contact_name" class="form-label fw-semibold" style="font-size: 13px;">Emergency Contact Name</label>
+              {{ form.emergency_contact_name }}
+              {% if form.emergency_contact_name.errors %}<div class="text-danger small mt-1">{% for e in form.emergency_contact_name.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+            <div class="col-md-6">
+              <label for="id_emergency_contact_phone" class="form-label fw-semibold" style="font-size: 13px;">Emergency Contact Phone</label>
+              {{ form.emergency_contact_phone }}
+              {% if form.emergency_contact_phone.errors %}<div class="text-danger small mt-1">{% for e in form.emergency_contact_phone.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+          </div>
+
+          <!-- Section 3: Organizational Placement & Status -->
+          <h6 class="fw-bold text-navy pb-2 border-bottom mb-3">
+            <i class="bi bi-briefcase me-1 text-teal"></i> 3. Employment & Role
+          </h6>
+          <div class="row g-3 mb-4">
+            <div class="col-md-4">
+              <label for="id_department" class="form-label fw-semibold" style="font-size: 13px;">Department *</label>
+              {{ form.department }}
+              {% if form.department.errors %}<div class="text-danger small mt-1">{% for e in form.department.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+            <div class="col-md-4">
+              <label for="id_designation" class="form-label fw-semibold" style="font-size: 13px;">Designation</label>
+              {{ form.designation }}
+              {% if form.designation.errors %}<div class="text-danger small mt-1">{% for e in form.designation.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+            <div class="col-md-4">
+              <label for="id_date_of_joining" class="form-label fw-semibold" style="font-size: 13px;">Joining Date *</label>
+              {{ form.date_of_joining }}
+              {% if form.date_of_joining.errors %}<div class="text-danger small mt-1">{% for e in form.date_of_joining.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+            <div class="col-md-4">
+              <label for="id_employment_status" class="form-label fw-semibold" style="font-size: 13px;">Status *</label>
+              {{ form.employment_status }}
+              {% if form.employment_status.errors %}<div class="text-danger small mt-1">{% for e in form.employment_status.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+            <div class="col-md-4">
+              <label for="id_employment_type" class="form-label fw-semibold" style="font-size: 13px;">Employment Type *</label>
+              {{ form.employment_type }}
+              {% if form.employment_type.errors %}<div class="text-danger small mt-1">{% for e in form.employment_type.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+          </div>
+
+          <!-- Section 4: Shift & Weekly Schedule -->
+          <h6 class="fw-bold text-navy pb-2 border-bottom mb-3">
+            <i class="bi bi-clock-history me-1 text-teal"></i> 4. Shift & Weekly Off Days
+          </h6>
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <label for="id_assigned_shift" class="form-label fw-semibold" style="font-size: 13px;">Assigned Shift</label>
+              {{ form.assigned_shift }}
+              {% if form.assigned_shift.errors %}<div class="text-danger small mt-1">{% for e in form.assigned_shift.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+            <div class="col-md-6">
+              <label for="id_standard_working_hours" class="form-label fw-semibold" style="font-size: 13px;">Standard Daily Hours</label>
+              {{ form.standard_working_hours }}
+              {% if form.standard_working_hours.errors %}<div class="text-danger small mt-1">{% for e in form.standard_working_hours.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+            <div class="col-md-12">
+              <label class="form-label fw-semibold" style="font-size: 13px;">Designated Weekly Off Days</label>
+              <div class="d-flex flex-wrap gap-3 p-2 bg-light rounded border">
+                {% for checkbox in form.weekly_off_days %}
+                  <div class="form-check">
+                    {{ checkbox.tag }}
+                    <label for="{{ checkbox.id_for_label }}" class="form-check-label" style="font-size: 13px;">{{ checkbox.choice_label }}</label>
+                  </div>
+                {% endfor %}
+              </div>
+              {% if form.weekly_off_days.errors %}<div class="text-danger small mt-1">{% for e in form.weekly_off_days.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+          </div>
+
+          <!-- Section 5: Compensation & Salary Calculation -->
+          <h6 class="fw-bold text-navy pb-2 border-bottom mb-3">
+            <i class="bi bi-currency-rupee me-1 text-teal"></i> 5. Salary Calculation & Base Rate
+          </h6>
+          <div class="row g-3 mb-4">
+            <div class="col-md-4">
+              <label for="id_salary_calculation_method" class="form-label fw-semibold" style="font-size: 13px;">Salary Method *</label>
+              {{ form.salary_calculation_method }}
+              <small class="text-muted d-block mt-1">Hourly, Daily Wage, or Monthly Salaried.</small>
+              {% if form.salary_calculation_method.errors %}<div class="text-danger small mt-1">{% for e in form.salary_calculation_method.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+            <div class="col-md-4">
+              <label for="id_base_salary_rate" class="form-label fw-semibold" style="font-size: 13px;">Base Salary Rate ({{ CURRENCY_SYMBOL }}) *</label>
+              {{ form.base_salary_rate }}
+              <small class="text-muted d-block mt-1">Amount matching calculation method.</small>
+              {% if form.base_salary_rate.errors %}<div class="text-danger small mt-1">{% for e in form.base_salary_rate.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+            <div class="col-md-4">
+              <label for="id_custom_overtime_rate" class="form-label fw-semibold" style="font-size: 13px;">Custom OT Hourly Rate ({{ CURRENCY_SYMBOL }})</label>
+              {{ form.custom_overtime_rate }}
+              <small class="text-muted d-block mt-1">Leave empty to use global multiplier.</small>
+              {% if form.custom_overtime_rate.errors %}<div class="text-danger small mt-1">{% for e in form.custom_overtime_rate.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+            <div class="col-md-12">
+              <div class="form-check">
+                {{ form.overtime_eligible }}
+                <label for="id_overtime_eligible" class="form-check-label fw-semibold" style="font-size: 13px;">Eligible for Overtime Compensation</label>
+              </div>
+            </div>
+            <div class="col-md-12">
+              <label for="id_notes" class="form-label fw-semibold" style="font-size: 13px;">Internal HR Notes</label>
+              {{ form.notes }}
+              {% if form.notes.errors %}<div class="text-danger small mt-1">{% for e in form.notes.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+          </div>
+
+          <!-- Section 6: Bank & Disbursement Details (Optional & Restricted) -->
+          <h6 class="fw-bold text-navy pb-2 border-bottom mb-3">
+            <i class="bi bi-bank me-1 text-teal"></i> 6. Bank & Disbursement Details (Optional & Confidential)
+          </h6>
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <label for="id_bank_name" class="form-label fw-semibold" style="font-size: 13px;">Bank Name</label>
+              {{ form.bank_name }}
+              {% if form.bank_name.errors %}<div class="text-danger small mt-1">{% for e in form.bank_name.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+            <div class="col-md-6">
+              <label for="id_bank_account_number" class="form-label fw-semibold" style="font-size: 13px;">Account Number</label>
+              {{ form.bank_account_number }}
+              {% if form.bank_account_number.errors %}<div class="text-danger small mt-1">{% for e in form.bank_account_number.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+            <div class="col-md-6">
+              <label for="id_bank_ifsc_code" class="form-label fw-semibold" style="font-size: 13px;">IFSC / Branch Code</label>
+              {{ form.bank_ifsc_code }}
+              {% if form.bank_ifsc_code.errors %}<div class="text-danger small mt-1">{% for e in form.bank_ifsc_code.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+            <div class="col-md-6">
+              <label for="id_bank_branch_name" class="form-label fw-semibold" style="font-size: 13px;">Branch Name</label>
+              {{ form.bank_branch_name }}
+              {% if form.bank_branch_name.errors %}<div class="text-danger small mt-1">{% for e in form.bank_branch_name.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+            <a href="{% url 'employees:employee_list' %}" class="btn btn-light border px-4">Cancel</a>
+            <button type="submit" class="btn btn-primary px-4">
+              <i class="bi bi-check-lg me-1"></i> Save Employee Profile
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

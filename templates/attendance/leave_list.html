@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}Employee Leave Records — {{ COMPANY_NAME }}{% endblock %}
+{% block page_title %}Employee Leave Records{% endblock %}
+
+{% block breadcrumbs %}
+<span class="text-teal">{{ COMPANY_NAME }}</span> &bull; 
+<a href="{% url 'attendance:daily_dashboard' %}" class="text-decoration-none text-muted">Attendance</a> &bull; 
+<span>Leave Records</span>
+{% endblock %}
+
+{% block content %}
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-white py-3 border-0 d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <div>
+      <h5 class="card-title fw-bold mb-1">
+        <i class="bi bi-calendar2-range text-teal me-2" style="color: #0d9488;"></i>Leave Records & Requests
+      </h5>
+      <p class="text-muted small mb-0">Track paid, unpaid, sick and casual leave across the workforce.</p>
+    </div>
+    {% if can_manage %}
+    <a href="{% url 'attendance:leave_create' %}" class="btn btn-primary btn-sm px-3 d-flex align-items-center gap-2">
+      <i class="bi bi-plus-circle"></i> Record Leave
+    </a>
+    {% endif %}
+  </div>
+
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Employee</th>
+            <th>Leave Type</th>
+            <th>Duration</th>
+            <th>Total Days</th>
+            <th>Reason</th>
+            <th>Status</th>
+            <th>Approved By</th>
+            {% if can_manage %}<th class="text-end">Actions</th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for leave in leaves %}
+          <tr>
+            <td>
+              <div class="fw-bold">{{ leave.employee.full_name }}</div>
+              <small class="text-muted">{{ leave.employee.employee_id }}</small>
+            </td>
+            <td>
+              <span class="badge bg-light text-dark border">
+                {{ leave.get_leave_type_display }}
+              </span>
+            </td>
+            <td>
+              <div>{{ leave.start_date|date:"d M Y" }} to {{ leave.end_date|date:"d M Y" }}</div>
+            </td>
+            <td>
+              <span class="fw-medium">{{ leave.duration_days }} day{{ leave.duration_days|pluralize }}</span>
+            </td>
+            <td class="small text-muted" style="max-width: 200px;">
+              {{ leave.reason|default:"—"|truncatechars:60 }}
+            </td>
+            <td>
+              {% if leave.status == 'APPROVED' %}
+                <span class="badge bg-success-subtle text-success border border-success-subtle">Approved</span>
+              {% elif leave.status == 'PENDING' %}
+                <span class="badge bg-warning-subtle text-warning border border-warning-subtle">Pending</span>
+              {% else %}
+                <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Rejected</span>
+              {% endif %}
+            </td>
+            <td class="small text-muted">
+              {{ leave.approved_by.username|default:"—" }}
+            </td>
+            {% if can_manage %}
+            <td class="text-end">
+              {% if leave.status == 'PENDING' %}
+              <div class="d-inline-flex gap-1">
+                <form action="{% url 'attendance:leave_status' leave.pk %}" method="post" class="d-inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="status" value="APPROVED">
+                  <button type="submit" class="btn btn-outline-success btn-sm py-0 px-2" title="Approve">
+                    <i class="bi bi-check-lg"></i>
+                  </button>
+                </form>
+                <form action="{% url 'attendance:leave_status' leave.pk %}" method="post" class="d-inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="status" value="REJECTED">
+                  <button type="submit" class="btn btn-outline-danger btn-sm py-0 px-2" title="Reject">
+                    <i class="bi bi-x-lg"></i>
+                  </button>
+                </form>
+              </div>
+              {% else %}
+                <span class="text-muted small">Completed</span>
+              {% endif %}
+            </td>
+            {% endif %}
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="text-center py-5 text-muted">
+              <i class="bi bi-calendar-check fs-2 d-block mb-2 text-secondary"></i>
+              No leave records found.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

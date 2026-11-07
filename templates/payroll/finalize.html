@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Finalize Payroll Period &bull; {{ COMPANY_NAME }}{% endblock %}
+{% block page_title %}Finalize & Lock Payroll{% endblock %}
+{% block breadcrumbs %}Payroll &bull; <a href="{% url 'payroll:period_detail' period.pk %}">Period #{{ period.pk }}</a> &bull; Finalize{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7 col-md-9">
+    <div class="card-portal mb-4">
+      <div class="card-header-portal">
+        <div class="stat-icon green" style="width: 38px; height: 38px; font-size: 18px;">
+          <i class="bi bi-lock-fill"></i>
+        </div>
+        <div>
+          <h5 class="mb-0 fw-bold" style="font-size: 15px;">Finalize Payroll Period</h5>
+          <small class="text-muted">Final approval, statement freezing, and attendance locking.</small>
+        </div>
+      </div>
+      <div class="card-body-portal">
+        <!-- Warning Banner -->
+        <div class="alert alert-warning d-flex align-items-start gap-3 mb-4" style="font-size: 13.5px; border-radius: 10px;">
+          <i class="bi bi-exclamation-triangle-fill fs-4 text-warning flex-shrink-0 mt-1"></i>
+          <div>
+            <div class="fw-bold mb-1">Permanent Finalization Action</div>
+            <ul class="mb-0 ps-3">
+              <li>All <strong>Attendance Records</strong> between <strong>{{ period.start_date|date:"d M Y" }}</strong> and <strong>{{ period.end_date|date:"d M Y" }}</strong> will be locked against routine modifications.</li>
+              <li>Statements will be sealed with immutable monetary figures.</li>
+              <li>PDF payslips and formal audit records will be generated.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="p-3 bg-light rounded border mb-4">
+          <div class="d-flex justify-content-between align-items-center" style="font-size: 13.5px;">
+            <div>
+              <span class="text-muted">Period:</span>
+              <strong class="text-navy ms-1">{{ period.start_date|date:"d M Y" }} – {{ period.end_date|date:"d M Y" }}</strong>
+            </div>
+            <div>
+              <span class="text-muted">Total Net Outlay:</span>
+              <strong class="text-success fs-5 ms-1">{{ CURRENCY_SYMBOL }} {{ period.total_net_pay|floatformat:2 }}</strong>
+            </div>
+          </div>
+        </div>
+
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger py-2 px-3 mb-3" style="font-size: 13px;">
+            {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+          </div>
+        {% endif %}
+
+        <form method="post" class="needs-double-submit-guard">
+          {% csrf_token %}
+
+          <div class="mb-4 form-check p-3 bg-light rounded border">
+            {{ form.confirm }}
+            <label for="id_confirm" class="form-check-label fw-bold text-navy" style="font-size: 13.5px;">
+              {{ form.confirm.label }}
+            </label>
+            {% if form.confirm.errors %}<div class="text-danger small mt-1">{% for e in form.confirm.errors %}{{ e }}{% endfor %}</div>{% endif %}
+          </div>
+
+          <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+            <a href="{% url 'payroll:period_detail' period.pk %}" class="btn btn-light border px-4">Cancel</a>
+            <button type="submit" class="btn btn-success px-4" data-confirm="Are you sure you want to finalize this payroll period? This will lock attendance records.">
+              <i class="bi bi-lock-fill me-1"></i> Confirm & Finalize Period
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+
+{% block title %}Executive Summary &bull; {{ COMPANY_NAME }}{% endblock %}
+{% block page_title %}Executive Summary Dashboard{% endblock %}
+{% block breadcrumbs %}Dashboard &bull; Owner Executive Overview{% endblock %}
+
+{% block content %}
+<!-- Read-Only Banner -->
+<div class="alert alert-light border shadow-sm py-2 px-3 mb-4 d-flex align-items-center justify-content-between" style="border-left: 4px solid #0d9488 !important;">
+  <div class="d-flex align-items-center gap-2 small text-secondary">
+    <i class="bi bi-shield-check text-teal fs-5" style="color: #0d9488;"></i>
+    <span><strong>Executive Read-Only Mode:</strong> High-level workforce intelligence, attendance trends, and finalized payroll summaries.</span>
+  </div>
+  <span class="badge bg-light text-dark border">Owner Access</span>
+</div>
+
+<!-- Top Metrics Row -->
+<div class="row g-3 mb-4">
+  <div class="col-xl-3 col-md-6">
+    <div class="stat-card teal">
+      <div class="stat-icon teal">
+        <i class="bi bi-people-fill"></i>
+      </div>
+      <div>
+        <p class="stat-label">Active Workforce</p>
+        <h3 class="stat-value">{{ total_employees }}</h3>
+        <p class="stat-sub">Registered Staff Members</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-md-6">
+    <div class="stat-card green">
+      <div class="stat-icon green">
+        <i class="bi bi-person-check-fill"></i>
+      </div>
+      <div>
+        <p class="stat-label">Present Today</p>
+        <h3 class="stat-value">{{ present_today }}</h3>
+        <p class="stat-sub">Verified Punches</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-md-6">
+    <div class="stat-card blue">
+      <div class="stat-icon blue">
+        <i class="bi bi-pie-chart-fill"></i>
+      </div>
+      <div>
+        <p class="stat-label">Attendance Rate</p>
+        <h3 class="stat-value">{{ attendance_percentage }}%</h3>
+        <p class="stat-sub">Workforce Turnout Today</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-md-6">
+    <div class="stat-card navy">
+      <div class="stat-icon navy">
+        <i class="bi bi-clock-history"></i>
+      </div>
+      <div>
+        <p class="stat-label">Total Monthly Hours</p>
+        <h3 class="stat-value">{{ total_working_hours_month|floatformat:1 }}</h3>
+        <p class="stat-sub">{{ total_ot_month|floatformat:1 }} Overtime Hours</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Monthly Attendance Trend Chart & Latest Payroll Row -->
+<div class="row g-4 mb-4">
+  <!-- Chart.js 30-Day Monthly Attendance Trend -->
+  <div class="col-lg-8">
+    <div class="card-portal h-100">
+      <div class="card-header-portal d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-graph-up-arrow text-teal" style="color: #0d9488;"></i>
+          <h6 class="mb-0 fw-bold">30-Day Monthly Attendance Turnout Trend</h6>
+        </div>
+        <small class="text-muted">Turnout Dynamics</small>
+      </div>
+      <div class="card-body-portal p-3">
+        <canvas id="ownerMonthlyAttendanceChart" height="110"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Latest Finalized Payroll Summary -->
+  <div class="col-lg-4">
+    <div class="card-portal h-100">
+      <div class="card-header-portal">
+        <i class="bi bi-cash-stack text-warning"></i>
+        <h6 class="mb-0 fw-bold">Latest Finalized Payroll</h6>
+      </div>
+      <div class="card-body-portal p-3">
+        {% if latest_finalized %}
+        <div class="p-3 bg-light rounded-3 mb-3 border">
+          <span class="text-muted small text-uppercase fw-semibold d-block">Period Outlay</span>
+          <h3 class="text-navy fw-bold mb-1">{{ CURRENCY_SYMBOL }} {{ latest_finalized.total_net_pay|floatformat:2 }}</h3>
+          <small class="text-muted">Total Net Salary Paid</small>
+        </div>
+
+        <table class="table table-sm table-borderless mb-3 small">
+          <tbody>
+            <tr>
+              <td class="text-muted">Cycle:</td>
+              <td class="fw-semibold text-end">{{ latest_finalized.get_cycle_type_display }}</td>
+            </tr>
+            <tr>
+              <td class="text-muted">Duration:</td>
+              <td class="fw-semibold text-end">{{ latest_finalized.start_date|date:"d M" }} – {{ latest_finalized.end_date|date:"d M Y" }}</td>
+            </tr>
+            <tr>
+              <td class="text-muted">Total Base Pay:</td>
+              <td class="fw-semibold text-end">{{ CURRENCY_SYMBOL }} {{ latest_finalized.total_base_pay|floatformat:2 }}</td>
+            </tr>
+            <tr>
+              <td class="text-muted">Total Overtime Pay:</td>
+              <td class="fw-semibold text-end">{{ CURRENCY_SYMBOL }} {{ latest_finalized.total_overtime_pay|floatformat:2 }}</td>
+            </tr>
+            <tr>
+              <td class="text-muted">Finalized Date:</td>
+              <td class="text-end">{{ latest_finalized.finalized_at|date:"d M Y" }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <a href="{% url 'payroll:period_detail' latest_finalized.pk %}" class="btn btn-outline-primary btn-sm w-100">
+          Inspect Finalized Breakdown &rarr;
+        </a>
+        {% else %}
+        <div class="text-center py-4 text-muted">
+          <i class="bi bi-wallet2 fs-2 d-block mb-2 text-secondary"></i>
+          No finalized payroll periods yet.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Executive Links -->
+<div class="row g-4">
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm p-3 h-100">
+      <div class="d-flex align-items-center gap-3">
+        <div class="rounded-circle bg-primary bg-opacity-10 text-primary p-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+          <i class="bi bi-people fs-4"></i>
+        </div>
+        <div>
+          <h6 class="fw-bold mb-1">Workforce Directory</h6>
+          <a href="{% url 'employees:employee_list' %}" class="small text-decoration-none">Browse Roster &rarr;</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm p-3 h-100">
+      <div class="d-flex align-items-center gap-3">
+        <div class="rounded-circle bg-teal bg-opacity-10 text-teal p-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; color: #0d9488 !important; background-color: rgba(13,148,136,0.1) !important;">
+          <i class="bi bi-card-checklist fs-4"></i>
+        </div>
+        <div>
+          <h6 class="fw-bold mb-1">Attendance Records</h6>
+          <a href="{% url 'attendance:attendance_list' %}" class="small text-decoration-none">Inspect Ledger &rarr;</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm p-3 h-100">
+      <div class="d-flex align-items-center gap-3">
+        <div class="rounded-circle bg-warning bg-opacity-10 text-warning p-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+          <i class="bi bi-cash fs-4"></i>
+        </div>
+        <div>
+          <h6 class="fw-bold mb-1">Historical Payroll</h6>
+          <a href="{% url 'payroll:period_list' %}" class="small text-decoration-none">View Statements &rarr;</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const ctx = document.getElementById("ownerMonthlyAttendanceChart");
+  if (ctx) {
+    const labels = {{ chart_labels|safe }};
+    const presentData = {{ chart_present|safe }};
+    const absentData = {{ chart_absent|safe }};
+
+    new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: "Present Turnout",
+            data: presentData,
+            borderColor: "#0d9488",
+            backgroundColor: "rgba(13, 148, 136, 0.1)",
+            fill: true,
+            tension: 0.3,
+            borderWidth: 2,
+            pointRadius: 2,
+          },
+          {
+            label: "Absent / Off",
+            data: absentData,
+            borderColor: "#ef4444",
+            backgroundColor: "transparent",
+            borderDash: [5, 5],
+            borderWidth: 1.5,
+            pointRadius: 1,
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: "top", labels: { boxWidth: 12, font: { size: 12 } } }
+        },
+        scales: {
+          x: { grid: { display: false } },
+          y: { beginAtZero: true, ticks: { precision: 0 } }
+        }
+      }
+    });
+  }
+});
+</script>
+{% endblock %}

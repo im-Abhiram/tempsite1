@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Review Payroll Period &bull; {{ COMPANY_NAME }}{% endblock %}
+{% block page_title %}Review Payroll Draft{% endblock %}
+{% block breadcrumbs %}Payroll &bull; <a href="{% url 'payroll:period_detail' period.pk %}">Period #{{ period.pk }}</a> &bull; Review{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8 col-md-10">
+    <div class="card-portal mb-4">
+      <div class="card-header-portal">
+        <div class="stat-icon teal" style="width: 38px; height: 38px; font-size: 18px;">
+          <i class="bi bi-check2-circle"></i>
+        </div>
+        <div>
+          <h5 class="mb-0 fw-bold" style="font-size: 15px;">Review Payroll Period Draft</h5>
+          <small class="text-muted">Validate calculations prior to final approval and lock.</small>
+        </div>
+      </div>
+      <div class="card-body-portal">
+        <div class="p-3 bg-light rounded border mb-4">
+          <div class="row g-2" style="font-size: 13px;">
+            <div class="col-sm-6">
+              <span class="text-muted">Cycle:</span>
+              <strong class="text-navy ms-1">{{ period.get_cycle_type_display }} ({{ period.start_date|date:"d M Y" }} – {{ period.end_date|date:"d M Y" }})</strong>
+            </div>
+            <div class="col-sm-6 text-sm-end">
+              <span class="text-muted">Total Net Outlay:</span>
+              <strong class="text-teal fs-6 ms-1">{{ CURRENCY_SYMBOL }} {{ period.total_net_pay|floatformat:2 }}</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="alert alert-info py-2 px-3 mb-4 d-flex align-items-center gap-2" style="font-size: 13px;">
+          <i class="bi bi-info-circle-fill fs-5 text-info"></i>
+          <div>Advancing this period to <strong>Reviewed</strong> confirms that calculations have been inspected. The final step will lock attendance records and disburse payslips.</div>
+        </div>
+
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger py-2 px-3 mb-3" style="font-size: 13px;">
+            {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+          </div>
+        {% endif %}
+
+        <form method="post" class="needs-double-submit-guard">
+          {% csrf_token %}
+
+          <div class="mb-4">
+            <label for="id_notes" class="form-label fw-semibold" style="font-size: 13px;">Reviewer Notes / Observations (Optional)</label>
+            {{ form.notes }}
+            {% if form.notes.errors %}<div class="text-danger small mt-1">{% for e in form.notes.errors %}{{ e }}{% endfor %}</div>{% endif %}
+          </div>
+
+          <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+            <a href="{% url 'payroll:period_detail' period.pk %}" class="btn btn-light border px-4">Cancel</a>
+            <button type="submit" class="btn btn-primary px-4">
+              <i class="bi bi-check-lg me-1"></i> Mark as Reviewed
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

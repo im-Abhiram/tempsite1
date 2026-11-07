@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Mark Attendance &bull; {{ COMPANY_NAME }}{% endblock %}
+{% block page_title %}Mark Employee Attendance{% endblock %}
+{% block breadcrumbs %}Attendance &bull; Mark Attendance Entry{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7 col-md-9">
+    <div class="card-portal">
+      <div class="card-header-portal">
+        <div class="stat-icon teal" style="width: 38px; height: 38px; font-size: 18px;">
+          <i class="bi bi-calendar2-check"></i>
+        </div>
+        <div>
+          <h5 class="mb-0 fw-bold" style="font-size: 15px;">Manual Attendance Log</h5>
+          <small class="text-muted">Record punch times, automatic working hour calculation, and late arrival checks.</small>
+        </div>
+      </div>
+      <div class="card-body-portal">
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger py-2 px-3 mb-3" style="font-size: 13px;">
+            {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+          </div>
+        {% endif %}
+
+        <form method="post" class="needs-double-submit-guard">
+          {% csrf_token %}
+
+          <!-- Employee Selector -->
+          <div class="mb-3">
+            <label for="id_employee_pk" class="form-label fw-semibold" style="font-size: 13px;">Select Employee *</label>
+            <select name="employee_pk" id="id_employee_pk" class="form-select" required>
+              <option value="">-- Choose Employee --</option>
+              {% for emp in employees %}
+                <option value="{{ emp.pk }}" {% if selected_employee and selected_employee.pk == emp.pk %}selected{% endif %}>
+                  {{ emp.employee_id }} — {{ emp.full_name }} ({{ emp.department.name|default:"General" }})
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label for="id_work_date" class="form-label fw-semibold" style="font-size: 13px;">Shift Work Date *</label>
+              {{ form.work_date }}
+              {% if form.work_date.errors %}<div class="text-danger small mt-1">{% for e in form.work_date.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+            <div class="col-md-6">
+              <label for="id_status" class="form-label fw-semibold" style="font-size: 13px;">Attendance Status *</label>
+              {{ form.status }}
+              {% if form.status.errors %}<div class="text-danger small mt-1">{% for e in form.status.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label for="id_check_in_time" class="form-label fw-semibold" style="font-size: 13px;">Check-In Time</label>
+              {{ form.check_in_time }}
+              <small class="text-muted d-block mt-1">Leave blank if absent or on leave.</small>
+              {% if form.check_in_time.errors %}<div class="text-danger small mt-1">{% for e in form.check_in_time.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+            <div class="col-md-6">
+              <label for="id_check_out_time" class="form-label fw-semibold" style="font-size: 13px;">Check-Out Time</label>
+              {{ form.check_out_time }}
+              <small class="text-muted d-block mt-1">Leave blank if shift is still ongoing.</small>
+              {% if form.check_out_time.errors %}<div class="text-danger small mt-1">{% for e in form.check_out_time.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label for="id_break_duration_minutes" class="form-label fw-semibold" style="font-size: 13px;">Unpaid Break (Minutes)</label>
+              {{ form.break_duration_minutes }}
+              {% if form.break_duration_minutes.errors %}<div class="text-danger small mt-1">{% for e in form.break_duration_minutes.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+            <div class="col-md-6 d-flex align-items-center">
+              <div class="form-check mt-3">
+                {{ form.is_overnight }}
+                <label for="id_is_overnight" class="form-check-label fw-semibold" style="font-size: 13px;">Overnight Shift</label>
+                <small class="text-muted d-block">Check if checkout occurs on the next calendar day.</small>
+              </div>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <label for="id_overtime_hours" class="form-label fw-semibold" style="font-size: 13px;">
+                <i class="bi bi-lightning-charge text-warning me-1"></i>Approved Overtime Hours (Optional Override)
+              </label>
+              {{ form.overtime_hours }}
+              <small class="text-muted d-block mt-1">Enter custom overtime hours, or leave blank to calculate from punch times.</small>
+              {% if form.overtime_hours.errors %}<div class="text-danger small mt-1">{% for e in form.overtime_hours.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+            <div class="col-md-6">
+              <label for="id_correction_reason" class="form-label fw-semibold" style="font-size: 13px;">
+                <i class="bi bi-chat-left-text text-teal me-1"></i>Remarks & Notes
+              </label>
+              {{ form.correction_reason }}
+              <small class="text-muted d-block mt-1">Record overtime authorization, duty changes, or employee remarks.</small>
+              {% if form.correction_reason.errors %}<div class="text-danger small mt-1">{% for e in form.correction_reason.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+            <a href="{% url 'attendance:daily_dashboard' %}" class="btn btn-light border px-4">Cancel</a>
+            <button type="submit" class="btn btn-primary px-4">
+              <i class="bi bi-check-lg me-1"></i> Save Attendance Punch
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

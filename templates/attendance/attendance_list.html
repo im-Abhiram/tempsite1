@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}Attendance Records &bull; {{ COMPANY_NAME }}{% endblock %}
+{% block page_title %}Attendance History Ledger{% endblock %}
+{% block breadcrumbs %}Attendance &bull; Records History{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+  <div>
+    <h4 class="mb-1 fw-bold text-navy">Attendance Ledger</h4>
+    <p class="text-muted small mb-0">Search and filter historical punches, working hours, and lock statuses.</p>
+  </div>
+  <div class="d-flex gap-2">
+    {% if not is_owner %}
+    <a href="{% url 'attendance:attendance_mark' %}" class="btn btn-primary d-flex align-items-center gap-1 shadow-sm">
+      <i class="bi bi-plus-lg"></i> Mark Attendance
+    </a>
+    {% endif %}
+    <a href="{% url 'reports:attendance_excel' %}?{{ request.GET.urlencode }}" class="btn btn-outline-success d-flex align-items-center gap-1">
+      <i class="bi bi-file-earmark-excel"></i> Export Filtered Ledger
+    </a>
+  </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="card-portal mb-4">
+  <div class="card-body-portal p-3">
+    <form method="get" class="row g-2 align-items-center">
+      <div class="col-md-3">
+        <label for="id_employee" class="form-label small text-muted mb-1">Employee</label>
+        {{ form.employee }}
+      </div>
+      <div class="col-md-2">
+        <label for="id_department" class="form-label small text-muted mb-1">Department</label>
+        {{ form.department }}
+      </div>
+      <div class="col-md-2">
+        <label for="id_date_from" class="form-label small text-muted mb-1">From Date</label>
+        {{ form.date_from }}
+      </div>
+      <div class="col-md-2">
+        <label for="id_date_to" class="form-label small text-muted mb-1">To Date</label>
+        {{ form.date_to }}
+      </div>
+      <div class="col-md-2">
+        <label for="id_status" class="form-label small text-muted mb-1">Status</label>
+        {{ form.status }}
+      </div>
+      <div class="col-md-1 d-flex align-items-end pt-3">
+        <button type="submit" class="btn btn-secondary w-100">Filter</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Records Table -->
+<div class="card-portal">
+  <div class="table-responsive">
+    <table class="table-portal align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Employee</th>
+          <th>Department</th>
+          <th>Check-In</th>
+          <th>Check-Out</th>
+          <th>Net Hours</th>
+          <th>Overtime</th>
+          <th>Status</th>
+          <th>Entry</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for rec in page_obj %}
+        <tr>
+          <td class="fw-semibold text-navy font-monospace">{{ rec.work_date|date:"d M Y" }}</td>
+          <td>
+            <a href="{% url 'attendance:attendance_detail' rec.pk %}" class="fw-bold text-navy text-decoration-none">
+              {{ rec.employee.full_name }}
+            </a>
+            <span class="text-muted small">({{ rec.employee.employee_id }})</span>
+            {% if rec.is_late %}
+              <span class="badge bg-warning text-dark ms-1" style="font-size: 9.5px;">Late</span>
+            {% endif %}
+          </td>
+          <td class="text-muted small">{{ rec.employee.department.name|default:"General" }}</td>
+          <td>
+            {% if rec.check_in %}<span class="font-monospace">{{ rec.check_in|time:"H:i" }}</span>{% else %}<span class="text-muted">—</span>{% endif %}
+          </td>
+          <td>
+            {% if rec.check_out %}<span class="font-monospace">{{ rec.check_out|time:"H:i" }}</span>{% else %}<span class="text-muted">—</span>{% endif %}
+          </td>
+          <td>
+            <span class="fw-semibold">{{ rec.net_working_hours }} hrs</span>
+          </td>
+          <td>
+            {% if rec.overtime_hours > 0 %}
+              <span class="badge bg-info-subtle text-info border border-info-subtle font-monospace">+{{ rec.overtime_hours }}</span>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if rec.status == 'PRESENT' %}
+              <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">Present</span>
+            {% elif rec.status == 'HALF_DAY' %}
+              <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1">Half Day</span>
+            {% elif rec.status == 'ABSENT' %}
+              <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">Absent</span>
+            {% elif rec.status == 'INCOMPLETE' %}
+              <span class="badge bg-danger text-white px-2 py-1">Incomplete</span>
+            {% else %}
+              <span class="badge bg-light text-dark border px-2 py-1">{{ rec.get_status_display }}</span>
+            {% endif %}
+            {% if rec.is_locked_by_payroll %}<i class="bi bi-lock-fill text-muted ms-1" title="Payroll Locked"></i>{% endif %}
+          </td>
+          <td>
+            <span class="text-muted small font-monospace">{{ rec.get_entry_method_display }}</span>
+          </td>
+          <td class="text-end">
+            <div class="btn-group btn-group-sm">
+              <a href="{% url 'attendance:attendance_detail' rec.pk %}" class="btn btn-outline-secondary" title="View Detail">
+                <i class="bi bi-eye"></i>
+              </a>
+              {% if not is_owner and not rec.is_locked_by_payroll %}
+              <a href="{% url 'attendance:attendance_correct' rec.pk %}" class="btn btn-outline-secondary" title="Correct Punch">
+                <i class="bi bi-pencil-square"></i>
+              </a>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="10" class="text-center py-4 text-muted">
+            No attendance records match your filter criteria.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if page_obj.has_other_pages %}
+  <div class="card-footer bg-white border-top d-flex justify-content-between align-items-center py-3">
+    <small class="text-muted">Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} records</small>
+    <ul class="pagination pagination-sm mb-0">
+      {% if page_obj.has_previous %}
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.employee %}&employee={{ request.GET.employee }}{% endif %}{% if request.GET.department %}&department={{ request.GET.department }}{% endif %}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}{% endif %}{% if request.GET.date_to %}&date_to={{ request.GET.date_to }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">&laquo;</a></li>
+      {% endif %}
+      <li class="page-item active"><span class="page-link">{{ page_obj.number }}</span></li>
+      {% if page_obj.has_next %}
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.employee %}&employee={{ request.GET.employee }}{% endif %}{% if request.GET.department %}&department={{ request.GET.department }}{% endif %}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}{% endif %}{% if request.GET.date_to %}&date_to={{ request.GET.date_to }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">&raquo;</a></li>
+      {% endif %}
+    </ul>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

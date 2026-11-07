@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}Employee Directory &bull; {{ COMPANY_NAME }}{% endblock %}
+{% block page_title %}Employee Directory{% endblock %}
+{% block breadcrumbs %}Workforce &bull; Employees{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+  <div>
+    <h4 class="mb-1 fw-bold text-navy">Workforce Roster</h4>
+    <p class="text-muted small mb-0">Browse staff, employment profiles, shifts, and compensation rates.</p>
+  </div>
+  {% if not is_owner %}
+  <a href="{% url 'employees:employee_create' %}" class="btn btn-primary d-flex align-items-center gap-2 shadow-sm">
+    <i class="bi bi-person-plus-fill"></i>
+    <span>Add New Employee</span>
+  </a>
+  {% endif %}
+</div>
+
+<!-- Filters Bar -->
+<div class="card-portal mb-4">
+  <div class="card-body-portal p-3">
+    <form method="get" class="row g-2 align-items-center">
+      <div class="col-md-4">
+        <div class="input-group">
+          <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+          <input type="text" name="q" value="{{ q }}" class="form-control border-start-0" placeholder="Search ID, name, or phone...">
+        </div>
+      </div>
+      <div class="col-md-3">
+        <select name="dept" class="form-select">
+          <option value="">All Departments</option>
+          {% for d in departments %}
+            <option value="{{ d.pk }}" {% if selected_dept == d.pk|stringformat:"s" %}selected{% endif %}>{{ d.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <select name="status" class="form-select">
+          <option value="">All Statuses</option>
+          {% for s_val, s_lbl in statuses %}
+            <option value="{{ s_val }}" {% if selected_status == s_val %}selected{% endif %}>{{ s_lbl }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2 d-flex gap-2">
+        <button type="submit" class="btn btn-secondary flex-grow-1">Filter</button>
+        {% if q or selected_dept or selected_status %}
+          <a href="{% url 'employees:employee_list' %}" class="btn btn-outline-secondary" title="Clear Filters"><i class="bi bi-x-lg"></i></a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Employee Table -->
+<div class="card-portal">
+  <div class="table-responsive">
+    <table class="table-portal align-middle">
+      <thead>
+        <tr>
+          <th>Employee</th>
+          <th>ID</th>
+          <th>Department & Role</th>
+          <th>Shift</th>
+          <th>Salary Method</th>
+          <th>Status</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for emp in employees %}
+        <tr>
+          <td>
+            <div class="d-flex align-items-center gap-3">
+              {% if emp.photo %}
+                <img src="{{ emp.photo.url }}" alt="{{ emp.full_name }}" class="rounded-circle object-fit-cover border" style="width: 38px; height: 38px;">
+              {% else %}
+                <div class="user-avatar" style="width: 38px; height: 38px; font-size: 14px; background: #E2E8F0; color: #1E293B; border: 1px solid #CBD5E1; border-radius: 50%; display: grid; place-items: center; font-weight: 600;">
+                  {{ emp.first_name|slice:":1"|upper }}{{ emp.last_name|slice:":1"|upper }}
+                </div>
+              {% endif %}
+              <div>
+                <a href="{% url 'employees:employee_detail' emp.pk %}" class="fw-bold text-navy text-decoration-none">
+                  {{ emp.full_name }}
+                </a>
+                <div class="small text-muted">{{ emp.phone|default:"No phone" }}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <span class="badge bg-light text-navy border font-monospace px-2 py-1" style="font-size: 11.5px;">{{ emp.employee_id }}</span>
+          </td>
+          <td>
+            <div class="fw-semibold text-navy">{{ emp.department.name|default:"Unassigned" }}</div>
+            <div class="small text-muted">{{ emp.designation.name|default:"General Staff" }}</div>
+          </td>
+          <td>
+            {% if emp.assigned_shift %}
+              <span class="badge bg-light text-dark border" style="font-size: 11px;">
+                <i class="bi bi-clock me-1 text-teal"></i>{{ emp.assigned_shift.name }}
+              </span>
+            {% else %}
+              <span class="text-muted small">Standard Shift</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="fw-semibold">{{ emp.get_salary_calculation_method_display }}</div>
+            <div class="small text-muted">{{ CURRENCY_SYMBOL }} {{ emp.base_salary_rate|floatformat:2 }}</div>
+          </td>
+          <td>
+            {% if emp.employment_status == 'ACTIVE' %}
+              <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" style="font-size: 11px;">Active</span>
+            {% elif emp.employment_status == 'ON_LEAVE' %}
+              <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1" style="font-size: 11px;">On Leave</span>
+            {% elif emp.employment_status == 'SUSPENDED' %}
+              <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1" style="font-size: 11px;">Suspended</span>
+            {% else %}
+              <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1" style="font-size: 11px;">{{ emp.get_employment_status_display }}</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <div class="btn-group btn-group-sm">
+              <a href="{% url 'employees:employee_detail' emp.pk %}" class="btn btn-outline-secondary" title="View Profile">
+                <i class="bi bi-eye"></i>
+              </a>
+              {% if not is_owner %}
+              <form method="post" action="{% url 'attendance:quick_mark' %}" class="d-inline">
+                {% csrf_token %}
+                <input type="hidden" name="employee_pk" value="{{ emp.pk }}">
+                <input type="hidden" name="action_type" value="mark_present">
+                <button type="submit" class="btn btn-outline-success" title="Quick 1-Click Mark Present Today">
+                  <i class="bi bi-check-circle"></i>
+                </button>
+              </form>
+              <a href="{% url 'attendance:attendance_mark_emp' emp.pk %}" class="btn btn-outline-teal" title="Manual Attendance Log (Overtime & Remarks)">
+                <i class="bi bi-clock-history"></i>
+              </a>
+              <a href="{% url 'employees:employee_edit' emp.pk %}" class="btn btn-outline-secondary" title="Edit Employee">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <a href="{% url 'employees:salary_update' emp.pk %}" class="btn btn-outline-secondary" title="Adjust Salary Rate">
+                <i class="bi bi-currency-rupee"></i>
+              </a>
+              <a href="{% url 'employees:employee_delete' emp.pk %}" class="btn btn-outline-danger" title="Delete Employee">
+                <i class="bi bi-trash3"></i>
+              </a>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" class="text-center py-4 text-muted">
+            No employees found matching the specified criteria.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if is_paginated %}
+  <div class="card-footer bg-white border-top d-flex justify-content-between align-items-center py-3">
+    <small class="text-muted">Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ paginator.count }} employees</small>
+    <ul class="pagination pagination-sm mb-0">
+      {% if page_obj.has_previous %}
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q }}{% endif %}{% if selected_dept %}&dept={{ selected_dept }}{% endif %}">&laquo;</a></li>
+      {% endif %}
+      <li class="page-item active"><span class="page-link">{{ page_obj.number }}</span></li>
+      {% if page_obj.has_next %}
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q }}{% endif %}{% if selected_dept %}&dept={{ selected_dept }}{% endif %}">&raquo;</a></li>
+      {% endif %}
+    </ul>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

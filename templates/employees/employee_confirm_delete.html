@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Delete Employee &bull; {{ employee.full_name }} &bull; {{ COMPANY_NAME }}{% endblock %}
+{% block page_title %}Delete Employee Confirmation{% endblock %}
+{% block breadcrumbs %}Workforce &bull; <a href="{% url 'employees:employee_list' %}">Employees</a> &bull; Delete {{ employee.employee_id }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-6 col-md-8">
+    <div class="card-portal border-danger shadow-sm">
+      <div class="card-header-portal bg-danger-subtle text-danger py-3">
+        <div class="stat-icon red" style="width: 40px; height: 40px; font-size: 20px;">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+        </div>
+        <div>
+          <h5 class="mb-0 fw-bold text-danger" style="font-size: 16px;">Confirm Employee Removal</h5>
+          <small class="text-danger-emphasis">Please review the details below before proceeding.</small>
+        </div>
+      </div>
+
+      <div class="card-body-portal p-4">
+        <div class="d-flex align-items-center gap-3 p-3 bg-light rounded-3 border mb-4">
+          {% if employee.photo %}
+            <img src="{{ employee.photo.url }}" alt="{{ employee.full_name }}" class="rounded-circle object-fit-cover border" style="width: 54px; height: 54px;">
+          {% else %}
+            <div class="user-avatar" style="width: 54px; height: 54px; font-size: 20px; background: #1B2E48; color: #5EEAD4; border-radius: 50%; display: grid; place-items: center; font-weight: 700;">
+              {{ employee.first_name|slice:":1"|upper }}{{ employee.last_name|slice:":1"|upper }}
+            </div>
+          {% endif %}
+          <div>
+            <h5 class="mb-1 fw-bold text-navy">{{ employee.full_name }}</h5>
+            <div class="small text-muted">
+              <span class="badge bg-light text-navy border font-monospace me-1">{{ employee.employee_id }}</span>
+              {{ employee.department.name|default:"General Dept" }} &bull; {{ employee.designation.name|default:"Staff" }}
+            </div>
+          </div>
+        </div>
+
+        {% if has_finalized_payroll %}
+        <div class="alert alert-warning py-3 px-3 mb-4" style="font-size: 13.5px;">
+          <div class="d-flex gap-2">
+            <i class="bi bi-shield-lock-fill fs-4 text-warning"></i>
+            <div>
+              <strong class="d-block mb-1">Audit Compliance Notice:</strong>
+              This employee has <strong>{{ statement_count }} finalized payroll statements</strong>.
+              To comply with statutory financial audits, finalized salary records cannot be erased.
+              Confirming removal will safely set this employee's employment status to <strong>Terminated / Inactive</strong> and withdraw them from active duty and future payroll periods.
+            </div>
+          </div>
+        </div>
+        {% else %}
+        <div class="alert alert-danger py-3 px-3 mb-4" style="font-size: 13.5px;">
+          <div class="d-flex gap-2">
+            <i class="bi bi-trash3-fill fs-4 text-danger"></i>
+            <div>
+              <strong class="d-block mb-1">Permanent Deletion Warning:</strong>
+              This will permanently delete employee <strong>{{ employee.full_name }}</strong>, including all {{ attendance_count }} associated attendance logs and profile documents.
+              This action cannot be undone.
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        <form method="post">
+          {% csrf_token %}
+          <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+            <a href="{% url 'employees:employee_detail' employee.pk %}" class="btn btn-light border px-4">
+              Cancel
+            </a>
+            <button type="submit" class="btn btn-danger px-4">
+              <i class="bi bi-trash3 me-1"></i> {% if has_finalized_payroll %}Confirm Deactivation / Terminate{% else %}Permanently Delete Employee{% endif %}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

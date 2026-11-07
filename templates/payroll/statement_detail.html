@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+
+{% block title %}Payslip &bull; {{ statement.employee.full_name }} &bull; {{ COMPANY_NAME }}{% endblock %}
+{% block page_title %}Employee Payslip{% endblock %}
+{% block breadcrumbs %}Payroll &bull; <a href="{% url 'payroll:period_detail' statement.payroll_period.pk %}">Period #{{ statement.payroll_period.pk }}</a> &bull; Payslip {{ statement.employee.employee_id }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-9 col-xl-8">
+    <!-- Top Actions (Hidden on Print) -->
+    <div class="d-flex justify-content-between align-items-center mb-4 d-print-none">
+      <a href="{% url 'payroll:period_detail' statement.payroll_period.pk %}" class="btn btn-outline-secondary btn-sm">
+        &larr; Back to Period
+      </a>
+      <div class="d-flex gap-2">
+        <button type="button" class="btn btn-outline-dark btn-sm d-flex align-items-center gap-1" onclick="window.print()">
+          <i class="bi bi-printer"></i> Print Payslip
+        </button>
+      </div>
+    </div>
+
+    <!-- Payslip Paper Sheet -->
+    <div class="card-portal p-5 bg-white shadow-sm" id="printablePayslip" style="border-radius: 12px;">
+      <!-- Header -->
+      <div class="d-flex justify-content-between align-items-start pb-4 border-bottom mb-4">
+        <div>
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="fs-4">🏢</span>
+            <h3 class="mb-0 fw-bold text-navy" style="font-size: 22px;">{{ COMPANY_NAME }}</h3>
+          </div>
+          <p class="text-muted small mb-0">Salary Statement &bull; Confidential Employee Payslip</p>
+        </div>
+        <div class="text-end">
+          <span class="badge bg-light text-navy border font-monospace px-3 py-2" style="font-size: 13px;">
+            Statement #{{ statement.pk }}
+          </span>
+          <div class="small text-muted mt-1">
+            Period: <strong>{{ statement.payroll_period.start_date|date:"d M Y" }} – {{ statement.payroll_period.end_date|date:"d M Y" }}</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Employee Information Grid -->
+      <div class="row g-3 p-3 bg-light rounded border mb-4" style="font-size: 13px;">
+        <div class="col-sm-6">
+          <table class="table table-borderless table-sm mb-0">
+            <tbody>
+              <tr>
+                <td class="text-muted" style="width: 40%;">Employee Name:</td>
+                <td class="fw-bold text-navy">{{ statement.employee.full_name }}</td>
+              </tr>
+              <tr>
+                <td class="text-muted">Employee ID:</td>
+                <td class="font-monospace fw-semibold">{{ statement.employee.employee_id }}</td>
+              </tr>
+              <tr>
+                <td class="text-muted">Department:</td>
+                <td>{{ statement.employee.department.name|default:"General" }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="col-sm-6">
+          <table class="table table-borderless table-sm mb-0">
+            <tbody>
+              <tr>
+                <td class="text-muted" style="width: 40%;">Pay Method:</td>
+                <td class="fw-semibold text-navy">{{ statement.employee.get_salary_calculation_method_display }}</td>
+              </tr>
+              <tr>
+                <td class="text-muted">Active Base Rate:</td>
+                <td class="fw-semibold text-navy">{{ CURRENCY_SYMBOL }} {{ statement.employee.base_salary_rate|floatformat:2 }}</td>
+              </tr>
+              <tr>
+                <td class="text-muted">Cycle Type:</td>
+                <td>{{ statement.payroll_period.get_cycle_type_display }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Attendance Summary for Period -->
+      <div class="mb-4">
+        <h6 class="fw-bold text-navy pb-2 border-bottom mb-3" style="font-size: 13.5px;">Attendance Summary for Period</h6>
+        <div class="row g-2 text-center" style="font-size: 12.5px;">
+          <div class="col-md-3 col-6">
+            <div class="p-2 border rounded bg-light">
+              <span class="text-muted small d-block">Payable Days</span>
+              <strong class="text-navy fs-6">{{ statement.payable_days }}</strong>
+            </div>
+          </div>
+          <div class="col-md-3 col-6">
+            <div class="p-2 border rounded bg-light">
+              <span class="text-muted small d-block">Paid Leave / Holidays</span>
+              <strong class="text-navy fs-6">{{ statement.paid_leave_days }}</strong>
+            </div>
+          </div>
+          <div class="col-md-3 col-6">
+            <div class="p-2 border rounded bg-light">
+              <span class="text-muted small d-block">Total Working Hours</span>
+              <strong class="text-teal fs-6">{{ statement.worked_hours }} hrs</strong>
+            </div>
+          </div>
+          <div class="col-md-3 col-6">
+            <div class="p-2 border rounded bg-light">
+              <span class="text-muted small d-block">Overtime Hours</span>
+              <strong class="text-warning fs-6">{{ statement.overtime_hours }} hrs</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Earnings & Deductions Tables -->
+      <div class="row g-4 mb-4">
+        <!-- Earnings -->
+        <div class="col-md-6">
+          <div class="border rounded p-3 h-100">
+            <h6 class="fw-bold text-navy pb-2 border-bottom mb-3" style="font-size: 13px;">Earnings</h6>
+            <table class="table table-borderless table-sm mb-0" style="font-size: 13px;">
+              <tbody>
+                <tr>
+                  <td>Base Salary / Wages</td>
+                  <td class="text-end fw-semibold text-navy">{{ CURRENCY_SYMBOL }} {{ statement.base_pay|floatformat:2 }}</td>
+                </tr>
+                <tr>
+                  <td>Overtime Pay</td>
+                  <td class="text-end fw-semibold text-warning">+{{ CURRENCY_SYMBOL }} {{ statement.overtime_pay|floatformat:2 }}</td>
+                </tr>
+                {% for item in statement.line_items.all %}
+                  {% if item.item_type == 'ALLOWANCE' or item.item_type == 'BONUS' %}
+                  <tr>
+                    <td>{{ item.description }}</td>
+                    <td class="text-end fw-semibold text-success">+{{ CURRENCY_SYMBOL }} {{ item.amount|floatformat:2 }}</td>
+                  </tr>
+                  {% endif %}
+                {% endfor %}
+                <tr class="border-top">
+                  <td class="fw-bold text-navy pt-2">Total Gross Earnings</td>
+                  <td class="text-end fw-bold text-navy pt-2">{{ CURRENCY_SYMBOL }} {{ statement.gross_pay|floatformat:2 }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Deductions -->
+        <div class="col-md-6">
+          <div class="border rounded p-3 h-100">
+            <h6 class="fw-bold text-navy pb-2 border-bottom mb-3" style="font-size: 13px;">Deductions</h6>
+            <table class="table table-borderless table-sm mb-0" style="font-size: 13px;">
+              <tbody>
+                {% for item in statement.line_items.all %}
+                  {% if item.item_type == 'DEDUCTION' or item.item_type == 'ADVANCE_RECOVERY' or item.item_type == 'TAX' %}
+                  <tr>
+                    <td>{{ item.description }}</td>
+                    <td class="text-end text-danger">-{{ CURRENCY_SYMBOL }} {{ item.amount|floatformat:2 }}</td>
+                  </tr>
+                  {% endif %}
+                {% empty %}
+                  <tr>
+                    <td colspan="2" class="text-muted small py-2">No statutory or manual deductions recorded.</td>
+                  </tr>
+                {% endfor %}
+                <tr class="border-top">
+                  <td class="fw-bold text-navy pt-2">Total Deductions</td>
+                  <td class="text-end fw-bold text-danger pt-2">-{{ CURRENCY_SYMBOL }} {{ statement.total_deductions|floatformat:2 }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Net Pay Callout Banner -->
+      <div class="p-3 bg-teal-subtle rounded border border-teal-subtle mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <span class="text-muted small text-uppercase fw-bold letter-spacing-1">Take-Home Net Salary</span>
+            <div class="small text-muted">Amount payable via bank transfer / disbursement</div>
+          </div>
+          <div class="text-end">
+            <h2 class="mb-0 fw-bold text-teal" style="font-size: 26px;">
+              {{ CURRENCY_SYMBOL }} {{ statement.net_pay|floatformat:2 }}
+            </h2>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer & Signatures -->
+      <div class="pt-4 border-top mt-5" style="font-size: 12px;">
+        <div class="row text-center text-muted">
+          <div class="col-6">
+            <div style="border-top: 1px dashed #CBD5E1; width: 60%; margin: 40px auto 5px;"></div>
+            <span>Prepared By (Accountant / HR)</span>
+          </div>
+          <div class="col-6">
+            <div style="border-top: 1px dashed #CBD5E1; width: 60%; margin: 40px auto 5px;"></div>
+            <span>Employee Acknowledgment</span>
+          </div>
+        </div>
+      </div>
+
+      {% if show_breakdown and statement.calculation_snapshot %}
+      <!-- Calculation Snapshot Inspector (Hidden on Print) -->
+      <div class="mt-4 pt-3 border-top d-print-none">
+        <button class="btn btn-link btn-sm text-muted p-0 text-decoration-none" type="button" data-bs-toggle="collapse" data-bs-target="#calcSnapshot">
+          <i class="bi bi-code-slash me-1"></i> Technical Calculation Snapshot (Auditable JSON)
+        </button>
+        <div class="collapse mt-2" id="calcSnapshot">
+          <pre class="bg-light p-3 rounded border font-monospace text-muted" style="font-size: 11px; max-height: 200px; overflow-y: auto;">{{ statement.calculation_snapshot }}</pre>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

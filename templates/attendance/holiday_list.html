@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Holidays &bull; {{ COMPANY_NAME }}{% endblock %}
+{% block page_title %}Official Holidays{% endblock %}
+{% block breadcrumbs %}Attendance &bull; Paid Holidays{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+  <div>
+    <h4 class="mb-1 fw-bold text-navy">Company & Statutory Holidays</h4>
+    <p class="text-muted small mb-0">Configured holidays for attendance tracking and wage calculations.</p>
+  </div>
+  {% if not is_owner %}
+  <a href="{% url 'attendance:holiday_create' %}" class="btn btn-primary d-flex align-items-center gap-2 shadow-sm">
+    <i class="bi bi-plus-lg"></i>
+    <span>Add Holiday</span>
+  </a>
+  {% endif %}
+</div>
+
+<div class="card-portal">
+  <div class="table-responsive">
+    <table class="table-portal align-middle">
+      <thead>
+        <tr>
+          <th>Holiday Name</th>
+          <th>Date</th>
+          <th>Day</th>
+          <th>Paid Status</th>
+          {% if not is_owner %}
+          <th class="text-end">Actions</th>
+          {% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for h in holidays %}
+        <tr>
+          <td>
+            <div class="fw-bold text-navy"><i class="bi bi-calendar-event me-2 text-teal"></i>{{ h.name }}</div>
+          </td>
+          <td>
+            <span class="badge bg-light text-navy border font-monospace px-2 py-1">{{ h.date|date:"d M Y" }}</span>
+          </td>
+          <td>
+            <span class="text-muted">{{ h.date|date:"l" }}</span>
+          </td>
+          <td>
+            {% if h.is_paid %}
+              <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                <i class="bi bi-check-circle me-1"></i>Paid Holiday
+              </span>
+            {% else %}
+              <span class="badge bg-light text-muted border px-2 py-1">Unpaid</span>
+            {% endif %}
+          </td>
+          {% if not is_owner %}
+          <td class="text-end">
+            <a href="{% url 'attendance:holiday_delete' h.pk %}" class="btn btn-outline-danger btn-sm" title="Delete Holiday">
+              <i class="bi bi-trash3"></i> Delete
+            </a>
+          </td>
+          {% endif %}
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="5" class="text-center py-4 text-muted">No holidays listed in the portal yet.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

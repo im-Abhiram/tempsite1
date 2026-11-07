@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}System Audit Trail &bull; {{ COMPANY_NAME }}{% endblock %}
+{% block page_title %}Security & System Audit Trail{% endblock %}
+{% block breadcrumbs %}Administration &bull; Audit Trail{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+  <div>
+    <h4 class="mb-1 fw-bold text-navy">Security & Audit Event Ledger</h4>
+    <p class="text-muted small mb-0">Immutable, tamper-evident log of logins, employee updates, salary modifications, and payroll finalizations.</p>
+  </div>
+  <span class="badge bg-light text-navy border px-3 py-2">
+    <i class="bi bi-shield-lock-fill text-danger me-1"></i> Superadmin Protected Ledger
+  </span>
+</div>
+
+<!-- Filters Bar -->
+<div class="card-portal mb-4">
+  <div class="card-body-portal p-3">
+    <form method="get" class="row g-2 align-items-center">
+      <div class="col-md-3">
+        <label for="q" class="form-label small text-muted mb-1">Search Keyword</label>
+        <input type="text" id="q" name="q" value="{{ q }}" class="form-control" placeholder="Username, IP, target ID...">
+      </div>
+      <div class="col-md-3">
+        <label for="action" class="form-label small text-muted mb-1">Action Type</label>
+        <select id="action" name="action" class="form-select">
+          <option value="">All Action Types</option>
+          {% for a_val, a_lbl in actions %}
+            <option value="{{ a_val }}" {% if selected_action == a_val %}selected{% endif %}>{{ a_lbl }} ({{ a_val }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label for="date_from" class="form-label small text-muted mb-1">From Date</label>
+        <input type="date" id="date_from" name="date_from" value="{{ date_from }}" class="form-control">
+      </div>
+      <div class="col-md-2">
+        <label for="date_to" class="form-label small text-muted mb-1">To Date</label>
+        <input type="date" id="date_to" name="date_to" value="{{ date_to }}" class="form-control">
+      </div>
+      <div class="col-md-2 d-flex align-items-end pt-3">
+        <button type="submit" class="btn btn-secondary w-100">Filter Trail</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Audit Log Table -->
+<div class="card-portal">
+  <div class="table-responsive">
+    <table class="table-portal align-middle mb-0" style="font-size: 13px;">
+      <thead>
+        <tr>
+          <th>Timestamp (UTC)</th>
+          <th>Action</th>
+          <th>Actor</th>
+          <th>Target</th>
+          <th>Client IP</th>
+          <th>Metadata Details</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for evt in events %}
+        <tr>
+          <td class="text-muted font-monospace" style="white-space: nowrap;">
+            {{ evt.timestamp|date:"d M Y, H:i:s" }}
+          </td>
+          <td>
+            {% if 'FAIL' in evt.action or 'SUSPEND' in evt.action %}
+              <span class="badge bg-danger-subtle text-danger border border-danger-subtle font-monospace px-2 py-1">{{ evt.action }}</span>
+            {% elif 'SUCCESS' in evt.action or 'ACTIVATE' in evt.action or 'FINALIZE' in evt.action %}
+              <span class="badge bg-success-subtle text-success border border-success-subtle font-monospace px-2 py-1">{{ evt.action }}</span>
+            {% elif 'SALARY' in evt.action or 'PASSWORD' in evt.action %}
+              <span class="badge bg-warning-subtle text-warning border border-warning-subtle font-monospace px-2 py-1">{{ evt.action }}</span>
+            {% else %}
+              <span class="badge bg-light text-navy border font-monospace px-2 py-1">{{ evt.action }}</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if evt.actor %}
+              <span class="fw-semibold text-navy">{{ evt.actor.username }}</span>
+              <small class="text-muted d-block">({{ evt.actor.get_role_display }})</small>
+            {% else %}
+              <span class="text-muted fst-italic">{{ evt.actor_username|default:"Anonymous / System" }}</span>
+            {% endif %}
+          </td>
+          <td>
+            <span class="font-monospace text-navy fw-semibold">{{ evt.target_model }}</span>
+            {% if evt.target_id %}<span class="text-muted small">#{{ evt.target_id }}</span>{% endif %}
+          </td>
+          <td class="font-monospace text-muted small">
+            {{ evt.ip_address|default:"127.0.0.1" }}
+          </td>
+          <td>
+            {% if evt.extra_data %}
+              <button class="btn btn-xs btn-outline-secondary py-0 px-2" type="button" data-bs-toggle="collapse" data-bs-target="#extra{{ evt.pk }}">
+                Inspect JSON
+              </button>
+              <div class="collapse mt-2" id="extra{{ evt.pk }}">
+                <pre class="bg-light p-2 rounded border font-monospace text-muted mb-0" style="font-size: 11px; max-width: 320px; max-height: 150px; overflow-y: auto;">{{ evt.extra_data }}</pre>
+              </div>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6" class="text-center py-4 text-muted">No audit events match your query.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if is_paginated %}
+  <div class="card-footer bg-white border-top d-flex justify-content-between align-items-center py-3">
+    <small class="text-muted">Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ paginator.count }} events</small>
+    <ul class="pagination pagination-sm mb-0">
+      {% if page_obj.has_previous %}
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}{% if selected_action %}&action={{ selected_action|urlencode }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">&laquo;</a></li>
+      {% endif %}
+      <li class="page-item active"><span class="page-link">{{ page_obj.number }}</span></li>
+      {% if page_obj.has_next %}
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}{% if selected_action %}&action={{ selected_action|urlencode }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">&raquo;</a></li>
+      {% endif %}
+    </ul>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

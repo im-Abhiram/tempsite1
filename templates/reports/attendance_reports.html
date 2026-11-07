@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}Time & Attendance Reports — {{ COMPANY_NAME }}{% endblock %}
+{% block page_title %}Time & Attendance Reports{% endblock %}
+
+{% block breadcrumbs %}
+<span class="text-teal">{{ COMPANY_NAME }}</span> &bull; 
+<a href="{% url 'reports:hub' %}" class="text-decoration-none text-muted">Reports</a> &bull; 
+<span>Attendance</span>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+  <!-- 1. Individual Employee History -->
+  <div class="col-12 col-lg-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white py-3 border-0">
+        <h5 class="card-title fw-bold mb-1">
+          <i class="bi bi-person-lines-fill text-primary me-2"></i>Individual Employee Attendance History
+        </h5>
+        <p class="text-muted small mb-0">Generate complete punch and hours log for a specific employee.</p>
+      </div>
+      <div class="card-body">
+        <form action="{% url 'reports:individual_attendance_csv' %}" method="get">
+          <div class="mb-3">
+            <label class="form-label fw-medium">Select Employee</label>
+            <select name="employee_id" class="form-select" required>
+              <option value="">-- Choose Employee --</option>
+              {% for emp in employees %}
+              <option value="{{ emp.id }}">{{ emp.employee_id }} — {{ emp.full_name }} ({{ emp.department.name }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary btn-sm px-4 d-flex align-items-center gap-2">
+            <i class="bi bi-download"></i> Download Employee History CSV
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Single Day Snapshot -->
+  <div class="col-12 col-lg-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white py-3 border-0">
+        <h5 class="card-title fw-bold mb-1">
+          <i class="bi bi-calendar2-day text-teal me-2" style="color: #0d9488;"></i>Daily Attendance Snapshot
+        </h5>
+        <p class="text-muted small mb-0">Export all employee punch records for an exact work date.</p>
+      </div>
+      <div class="card-body">
+        <form action="{% url 'reports:daily_attendance_csv' %}" method="get">
+          <div class="mb-3">
+            <label class="form-label fw-medium">Work Date</label>
+            <input type="date" name="date" class="form-control" value="{{ today|date:'Y-m-d' }}" required>
+          </div>
+          <button type="submit" class="btn btn-teal text-white btn-sm px-4 d-flex align-items-center gap-2" style="background-color: #0d9488;">
+            <i class="bi bi-download"></i> Download Daily CSV
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Monthly Calendar Register -->
+  <div class="col-12 col-lg-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white py-3 border-0">
+        <h5 class="card-title fw-bold mb-1">
+          <i class="bi bi-calendar-month text-warning me-2"></i>Monthly Attendance Register
+        </h5>
+        <p class="text-muted small mb-0">Full monthly attendance ledger for all active staff.</p>
+      </div>
+      <div class="card-body">
+        <form action="{% url 'reports:monthly_attendance_csv' %}" method="get">
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label fw-medium">Year</label>
+              <input type="number" name="year" class="form-control" value="{{ today.year }}" min="2020" max="2035" required>
+            </div>
+            <div class="col-6">
+              <label class="form-label fw-medium">Month</label>
+              <select name="month" class="form-select" required>
+                <option value="1" {% if today.month == 1 %}selected{% endif %}>January</option>
+                <option value="2" {% if today.month == 2 %}selected{% endif %}>February</option>
+                <option value="3" {% if today.month == 3 %}selected{% endif %}>March</option>
+                <option value="4" {% if today.month == 4 %}selected{% endif %}>April</option>
+                <option value="5" {% if today.month == 5 %}selected{% endif %}>May</option>
+                <option value="6" {% if today.month == 6 %}selected{% endif %}>June</option>
+                <option value="7" {% if today.month == 7 %}selected{% endif %}>July</option>
+                <option value="8" {% if today.month == 8 %}selected{% endif %}>August</option>
+                <option value="9" {% if today.month == 9 %}selected{% endif %}>September</option>
+                <option value="10" {% if today.month == 10 %}selected{% endif %}>October</option>
+                <option value="11" {% if today.month == 11 %}selected{% endif %}>November</option>
+                <option value="12" {% if today.month == 12 %}selected{% endif %}>December</option>
+              </select>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-outline-warning btn-sm px-4 d-flex align-items-center gap-2">
+            <i class="bi bi-download"></i> Download Monthly Register CSV
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Excel Attendance Ledger -->
+  <div class="col-12 col-lg-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white py-3 border-0">
+        <h5 class="card-title fw-bold mb-1">
+          <i class="bi bi-file-earmark-excel-fill text-success me-2"></i>Formatted Excel Attendance Ledger
+        </h5>
+        <p class="text-muted small mb-0">Professional formatted .xlsx ledger ready for accounting distribution.</p>
+      </div>
+      <div class="card-body">
+        <form action="{% url 'reports:attendance_excel' %}" method="get">
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label fw-medium">From Date</label>
+              <input type="date" name="date_from" class="form-control">
+            </div>
+            <div class="col-6">
+              <label class="form-label fw-medium">To Date</label>
+              <input type="date" name="date_to" class="form-control">
+            </div>
+          </div>
+          <button type="submit" class="btn btn-success btn-sm px-4 d-flex align-items-center gap-2">
+            <i class="bi bi-file-earmark-spreadsheet"></i> Download Excel (.xlsx)
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

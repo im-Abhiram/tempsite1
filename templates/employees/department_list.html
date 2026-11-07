@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Departments &bull; {{ COMPANY_NAME }}{% endblock %}
+{% block page_title %}Department Structure{% endblock %}
+{% block breadcrumbs %}Workforce &bull; Departments{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+  <div>
+    <h4 class="mb-1 fw-bold text-navy">Organizational Departments</h4>
+    <p class="text-muted small mb-0">Departmental breakdown and staffing assignments.</p>
+  </div>
+  {% if not is_owner %}
+  <a href="{% url 'employees:department_create' %}" class="btn btn-primary d-flex align-items-center gap-2 shadow-sm">
+    <i class="bi bi-plus-lg"></i>
+    <span>Add Department</span>
+  </a>
+  {% endif %}
+</div>
+
+<div class="card-portal">
+  <div class="table-responsive">
+    <table class="table-portal align-middle">
+      <thead>
+        <tr>
+          <th>Department Name</th>
+          <th>Code</th>
+          <th>Active Staff</th>
+          <th>Status</th>
+          {% if not is_owner %}
+          <th class="text-end">Actions</th>
+          {% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for dept in departments %}
+        <tr>
+          <td>
+            <div class="fw-bold text-navy"><i class="bi bi-diagram-3 me-2 text-teal"></i>{{ dept.name }}</div>
+          </td>
+          <td>
+            <span class="badge bg-light text-navy border font-monospace px-2 py-1">{{ dept.code }}</span>
+          </td>
+          <td>
+            <span class="badge bg-light text-dark border">
+              {{ dept.employees.count }} Personnel
+            </span>
+          </td>
+          <td>
+            {% if dept.is_active %}
+              <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">Active</span>
+            {% else %}
+              <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1">Inactive</span>
+            {% endif %}
+          </td>
+          {% if not is_owner %}
+          <td class="text-end">
+            <a href="{% url 'employees:department_delete' dept.pk %}" class="btn btn-outline-danger btn-sm" title="Delete Department">
+              <i class="bi bi-trash3"></i> Delete
+            </a>
+          </td>
+          {% endif %}
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="5" class="text-center py-4 text-muted">No departments configured yet.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

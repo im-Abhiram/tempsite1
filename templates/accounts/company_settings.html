@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}System Settings &bull; {{ COMPANY_NAME }}{% endblock %}
+{% block page_title %}System & Company Settings{% endblock %}
+{% block breadcrumbs %}Administration &bull; Company Settings{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-9 col-md-11">
+    <div class="card-portal">
+      <div class="card-header-portal">
+        <div class="stat-icon teal" style="width: 38px; height: 38px; font-size: 18px;">
+          <i class="bi bi-sliders"></i>
+        </div>
+        <div>
+          <h5 class="mb-0 fw-bold" style="font-size: 15px;">Enterprise Configuration</h5>
+          <small class="text-muted">Global payroll policies, shift defaults, and role access controls.</small>
+        </div>
+      </div>
+      <div class="card-body-portal">
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger py-2 px-3 mb-3" style="font-size: 13px;">
+            {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+          </div>
+        {% endif %}
+
+        <form method="post" class="needs-double-submit-guard">
+          {% csrf_token %}
+
+          <!-- Section: Company Identity -->
+          <h6 class="fw-bold text-navy pb-2 border-bottom mb-3">
+            <i class="bi bi-building me-1 text-teal"></i> Company Identity & Localization
+          </h6>
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <label for="id_company_name" class="form-label fw-semibold" style="font-size: 13px;">Company Name *</label>
+              {{ form.company_name }}
+              {% if form.company_name.errors %}<div class="text-danger small mt-1">{% for e in form.company_name.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+            <div class="col-md-3">
+              <label for="id_currency_symbol" class="form-label fw-semibold" style="font-size: 13px;">Currency Symbol *</label>
+              {{ form.currency_symbol }}
+              {% if form.currency_symbol.errors %}<div class="text-danger small mt-1">{% for e in form.currency_symbol.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+            <div class="col-md-3">
+              <label for="id_timezone" class="form-label fw-semibold" style="font-size: 13px;">Timezone *</label>
+              {{ form.timezone }}
+              {% if form.timezone.errors %}<div class="text-danger small mt-1">{% for e in form.timezone.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+          </div>
+
+          <!-- Section: Working Hours & Attendance Rules -->
+          <h6 class="fw-bold text-navy pb-2 border-bottom mb-3">
+            <i class="bi bi-clock-history me-1 text-teal"></i> Working Hours & Attendance Rules
+          </h6>
+          <div class="row g-3 mb-4">
+            <div class="col-md-4">
+              <label for="id_standard_daily_hours" class="form-label fw-semibold" style="font-size: 13px;">Standard Daily Hours</label>
+              {{ form.standard_daily_hours }}
+              {% if form.standard_daily_hours.errors %}<div class="text-danger small mt-1">{% for e in form.standard_daily_hours.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+            <div class="col-md-4">
+              <label for="id_standard_weekly_hours" class="form-label fw-semibold" style="font-size: 13px;">Standard Weekly Hours</label>
+              {{ form.standard_weekly_hours }}
+              {% if form.standard_weekly_hours.errors %}<div class="text-danger small mt-1">{% for e in form.standard_weekly_hours.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+            <div class="col-md-4">
+              <label for="id_late_grace_period_minutes" class="form-label fw-semibold" style="font-size: 13px;">Late Grace Period (Mins)</label>
+              {{ form.late_grace_period_minutes }}
+              {% if form.late_grace_period_minutes.errors %}<div class="text-danger small mt-1">{% for e in form.late_grace_period_minutes.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+            <div class="col-md-4">
+              <label for="id_default_unpaid_break_minutes" class="form-label fw-semibold" style="font-size: 13px;">Default Unpaid Break (Mins)</label>
+              {{ form.default_unpaid_break_minutes }}
+              {% if form.default_unpaid_break_minutes.errors %}<div class="text-danger small mt-1">{% for e in form.default_unpaid_break_minutes.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+            <div class="col-md-8">
+              <label for="id_working_hour_rounding" class="form-label fw-semibold" style="font-size: 13px;">Hour Rounding Policy</label>
+              {{ form.working_hour_rounding }}
+              <small class="text-muted d-block mt-1">Exact Decimal (2 decimal places) or 15-minute standard block rounding.</small>
+              {% if form.working_hour_rounding.errors %}<div class="text-danger small mt-1">{% for e in form.working_hour_rounding.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+          </div>
+
+          <!-- Section: Overtime Policy -->
+          <h6 class="fw-bold text-navy pb-2 border-bottom mb-3">
+            <i class="bi bi-lightning-charge me-1 text-teal"></i> Overtime Configuration
+          </h6>
+          <div class="row g-3 mb-4">
+            <div class="col-md-4">
+              <div class="form-check mt-4">
+                {{ form.overtime_allowed }}
+                <label for="id_overtime_allowed" class="form-check-label fw-semibold" style="font-size: 13px;">Allow Overtime Calculation</label>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <label for="id_daily_overtime_threshold_hours" class="form-label fw-semibold" style="font-size: 13px;">OT Daily Threshold (Hours)</label>
+              {{ form.daily_overtime_threshold_hours }}
+              {% if form.daily_overtime_threshold_hours.errors %}<div class="text-danger small mt-1">{% for e in form.daily_overtime_threshold_hours.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+            <div class="col-md-4">
+              <label for="id_overtime_rate_multiplier" class="form-label fw-semibold" style="font-size: 13px;">OT Multiplier (e.g. 1.5x)</label>
+              {{ form.overtime_rate_multiplier }}
+              {% if form.overtime_rate_multiplier.errors %}<div class="text-danger small mt-1">{% for e in form.overtime_rate_multiplier.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+          </div>
+
+          <!-- Section: Payroll Defaults & Export Permissions -->
+          <h6 class="fw-bold text-navy pb-2 border-bottom mb-3">
+            <i class="bi bi-cash-coin me-1 text-teal"></i> Payroll Defaults & Role Permissions
+          </h6>
+          <div class="row g-3 mb-4">
+            <div class="col-md-4">
+              <label for="id_payroll_cycle" class="form-label fw-semibold" style="font-size: 13px;">Default Pay Cycle</label>
+              {{ form.payroll_cycle }}
+              {% if form.payroll_cycle.errors %}<div class="text-danger small mt-1">{% for e in form.payroll_cycle.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+            <div class="col-md-4">
+              <label for="id_payroll_start_day" class="form-label fw-semibold" style="font-size: 13px;">Monthly Start Day (1-28)</label>
+              {{ form.payroll_start_day }}
+              {% if form.payroll_start_day.errors %}<div class="text-danger small mt-1">{% for e in form.payroll_start_day.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+            <div class="col-md-4">
+              <div class="form-check mt-4">
+                {{ form.allow_owner_export }}
+                <label for="id_allow_owner_export" class="form-check-label fw-semibold" style="font-size: 13px;">Allow Owner Report Export</label>
+                <small class="text-muted d-block">When checked, Owner role can download Excel and PDF exports.</small>
+              </div>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+            <a href="{% url 'employees:dashboard' %}" class="btn btn-light border px-4">Cancel</a>
+            <button type="submit" class="btn btn-primary px-4">
+              <i class="bi bi-save me-1"></i> Save Enterprise Settings
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

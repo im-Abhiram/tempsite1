@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}User Management &bull; {{ COMPANY_NAME }}{% endblock %}
+{% block page_title %}User Accounts{% endblock %}
+{% block breadcrumbs %}Administration &bull; User Accounts{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+  <div>
+    <h4 class="mb-1 fw-bold text-navy">Authorized System Users</h4>
+    <p class="text-muted small mb-0">Role-based access control for Accountants, Owners, and Superadmins.</p>
+  </div>
+  <a href="{% url 'accounts:user_create' %}" class="btn btn-primary d-flex align-items-center gap-2 shadow-sm">
+    <i class="bi bi-person-plus-fill"></i>
+    <span>Create New Account</span>
+  </a>
+</div>
+
+<!-- Search & Filters -->
+<div class="card-portal mb-4">
+  <div class="card-body-portal p-3">
+    <form method="get" class="row g-2 align-items-center">
+      <div class="col-md-5">
+        <div class="input-group">
+          <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+          <input type="text" name="q" value="{{ q }}" class="form-control border-start-0" placeholder="Search by username or display name...">
+        </div>
+      </div>
+      <div class="col-md-4">
+        <select name="role" class="form-select">
+          <option value="">All Roles</option>
+          {% for r_val, r_label in roles %}
+            <option value="{{ r_val }}" {% if active_role == r_val %}selected{% endif %}>{{ r_label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3 d-flex gap-2">
+        <button type="submit" class="btn btn-secondary flex-grow-1">Filter</button>
+        {% if q or active_role %}
+          <a href="{% url 'accounts:user_list' %}" class="btn btn-outline-secondary" title="Clear Filters"><i class="bi bi-x-lg"></i></a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Users Table -->
+<div class="card-portal">
+  <div class="table-responsive">
+    <table class="table-portal align-middle">
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Role</th>
+          <th>Status</th>
+          <th>Created By</th>
+          <th>Last Login</th>
+          <th>Failed Attempts</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td>
+            <div class="d-flex align-items-center gap-3">
+              <div class="user-avatar" style="width: 36px; height: 36px; font-size: 14px; background: #1B2E48; color: #5EEAD4; border: 1.5px solid var(--teal-500); border-radius: 50%; display: grid; place-items: center;">
+                {{ u.username|slice:":1"|upper }}
+              </div>
+              <div>
+                <div class="fw-bold text-navy">{{ u.username }}</div>
+                <div class="small text-muted">{{ u.display_name|default:u.email|default:"No display name" }}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            {% if u.is_superadmin %}
+              <span class="badge" style="background: rgba(239,68,68,.15); color: #DC2626; font-weight: 600; padding: 5px 10px; border-radius: 99px;">
+                <i class="bi bi-shield-fill me-1"></i>Superadmin
+              </span>
+            {% elif u.is_accountant %}
+              <span class="badge" style="background: rgba(13,148,136,.15); color: #0D9488; font-weight: 600; padding: 5px 10px; border-radius: 99px;">
+                <i class="bi bi-person-badge-fill me-1"></i>Accountant
+              </span>
+            {% else %}
+              <span class="badge" style="background: rgba(59,130,246,.15); color: #2563EB; font-weight: 600; padding: 5px 10px; border-radius: 99px;">
+                <i class="bi bi-eye-fill me-1"></i>Owner
+              </span>
+            {% endif %}
+          </td>
+          <td>
+            {% if u.is_active %}
+              <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" style="font-size: 11px;">
+                <i class="bi bi-check-circle me-1"></i>Active
+              </span>
+            {% else %}
+              <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1" style="font-size: 11px;">
+                <i class="bi bi-slash-circle me-1"></i>Suspended
+              </span>
+            {% endif %}
+          </td>
+          <td class="text-muted small">
+            {{ u.created_by.username|default:"System Initial" }}
+          </td>
+          <td class="text-muted small">
+            {% if u.last_login %}
+              {{ u.last_login|date:"d M Y, H:i" }}
+            {% else %}
+              <span class="text-muted fst-italic">Never</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if u.failed_login_attempts > 0 %}
+              <span class="badge bg-warning text-dark">{{ u.failed_login_attempts }}</span>
+            {% else %}
+              <span class="text-muted">0</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <div class="btn-group btn-group-sm">
+              <a href="{% url 'accounts:user_edit' u.pk %}" class="btn btn-outline-secondary" title="Edit Account">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <a href="{% url 'accounts:user_reset_password' u.pk %}" class="btn btn-outline-secondary" title="Reset Password">
+                <i class="bi bi-key"></i>
+              </a>
+              {% if u.pk != request.user.pk and not u.is_superadmin %}
+                {% if u.is_active %}
+                  <form method="post" action="{% url 'accounts:user_suspend' u.pk %}" class="d-inline" onsubmit="return confirm('Suspend user {{ u.username }}? They will not be able to log in.');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-danger" title="Suspend User">
+                      <i class="bi bi-person-x"></i>
+                    </button>
+                  </form>
+                {% else %}
+                  <form method="post" action="{% url 'accounts:user_activate' u.pk %}" class="d-inline" onsubmit="return confirm('Reactivate user {{ u.username }}?');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-success" title="Activate User">
+                      <i class="bi bi-person-check"></i>
+                    </button>
+                  </form>
+                {% endif %}
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" class="text-center py-4 text-muted">
+            No user accounts found matching your query.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

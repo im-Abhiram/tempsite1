@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Generate Payroll Period &bull; {{ COMPANY_NAME }}{% endblock %}
+{% block page_title %}Generate Payroll Cycle{% endblock %}
+{% block breadcrumbs %}Payroll &bull; <a href="{% url 'payroll:period_list' %}">Periods</a> &bull; Generate{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7 col-md-9">
+    <div class="card-portal">
+      <div class="card-header-portal">
+        <div class="stat-icon teal" style="width: 38px; height: 38px; font-size: 18px;">
+          <i class="bi bi-calculator"></i>
+        </div>
+        <div>
+          <h5 class="mb-0 fw-bold" style="font-size: 15px;">Generate Payroll Draft</h5>
+          <small class="text-muted">Calculates wages, overtime, and allowances/deductions for all active personnel.</small>
+        </div>
+      </div>
+      <div class="card-body-portal">
+        <!-- Guidelines Note Box -->
+        <div class="p-3 bg-light rounded border mb-4">
+          <div class="fw-semibold text-navy mb-1" style="font-size: 13px;">
+            <i class="bi bi-info-circle-fill text-teal me-1"></i> Pay Cycle Rules
+          </div>
+          <ul class="mb-0 text-muted small ps-3">
+            <li><strong>Weekly</strong>: Exactly 7 calendar days inclusive (e.g., Monday to Sunday).</li>
+            <li><strong>Bi-Weekly</strong>: Exactly 14 calendar days.</li>
+            <li><strong>Three-Weekly</strong>: Exactly 21 calendar days.</li>
+            <li><strong>Monthly</strong>: Typically 1st to last day of the calendar month.</li>
+          </ul>
+        </div>
+
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger py-2 px-3 mb-3" style="font-size: 13px;">
+            {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+          </div>
+        {% endif %}
+
+        <form method="post" class="needs-double-submit-guard">
+          {% csrf_token %}
+
+          <div class="mb-3">
+            <label for="id_cycle_type" class="form-label fw-semibold" style="font-size: 13px;">Payroll Cycle Type *</label>
+            {{ form.cycle_type }}
+            {% if form.cycle_type.errors %}<div class="text-danger small mt-1">{% for e in form.cycle_type.errors %}{{ e }}{% endfor %}</div>{% endif %}
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label for="id_start_date" class="form-label fw-semibold" style="font-size: 13px;">Start Date *</label>
+              {{ form.start_date }}
+              {% if form.start_date.errors %}<div class="text-danger small mt-1">{% for e in form.start_date.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+            <div class="col-md-6">
+              <label for="id_end_date" class="form-label fw-semibold" style="font-size: 13px;">End Date *</label>
+              {{ form.end_date }}
+              {% if form.end_date.errors %}<div class="text-danger small mt-1">{% for e in form.end_date.errors %}{{ e }}{% endfor %}</div>{% endif %}
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label for="id_notes" class="form-label fw-semibold" style="font-size: 13px;">Period Notes / Description (Optional)</label>
+            {{ form.notes }}
+            <small class="text-muted d-block mt-1">e.g., October 2026 Regular Payroll, Festival Advance Cycle.</small>
+            {% if form.notes.errors %}<div class="text-danger small mt-1">{% for e in form.notes.errors %}{{ e }}{% endfor %}</div>{% endif %}
+          </div>
+
+          <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+            <a href="{% url 'payroll:period_list' %}" class="btn btn-light border px-4">Cancel</a>
+            <button type="submit" class="btn btn-primary px-4">
+              <i class="bi bi-gear-fill me-1"></i> Calculate & Create Draft
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

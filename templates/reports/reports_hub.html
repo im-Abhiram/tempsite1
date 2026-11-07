@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block title %}Reports & Analytics Center — {{ COMPANY_NAME }}{% endblock %}
+{% block page_title %}Reports & Analytics Center{% endblock %}
+
+{% block breadcrumbs %}
+<span class="text-teal">{{ COMPANY_NAME }}</span> &bull; 
+<span>Reports Directory</span>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+  <!-- Workforce & Employee Reports -->
+  <div class="col-12 col-md-6 col-xl-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-4">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="rounded-circle bg-primary bg-opacity-10 text-primary p-3 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
+            <i class="bi bi-people-fill fs-4"></i>
+          </div>
+          <div>
+            <h5 class="fw-bold mb-0">Workforce Roster</h5>
+            <small class="text-muted">Master Employee Registry</small>
+          </div>
+        </div>
+        <p class="small text-secondary mb-4">
+          Complete personnel records including department, designation, shifts, and current employment status.
+        </p>
+        <div class="d-grid gap-2">
+          <a href="{% url 'reports:employees_csv' %}" class="btn btn-outline-primary btn-sm d-flex align-items-center justify-content-center gap-2">
+            <i class="bi bi-filetype-csv"></i> Download Master Roster CSV
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Attendance & Timesheet Reports -->
+  <div class="col-12 col-md-6 col-xl-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-4">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="rounded-circle bg-teal bg-opacity-10 text-teal p-3 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px; color: #0d9488 !important; background-color: rgba(13,148,136,0.1) !important;">
+            <i class="bi bi-clock-history fs-4"></i>
+          </div>
+          <div>
+            <h5 class="fw-bold mb-0">Time & Attendance</h5>
+            <small class="text-muted">Punches, Hours & Overtime</small>
+          </div>
+        </div>
+        <p class="small text-secondary mb-4">
+          Daily attendance, weekly cycles, monthly timecards, late punch tracking, and overtime audits.
+        </p>
+        <div class="d-grid gap-2">
+          <a href="{% url 'reports:attendance_reports' %}" class="btn btn-teal text-white btn-sm d-flex align-items-center justify-content-center gap-2" style="background-color: #0d9488;">
+            <i class="bi bi-sliders"></i> Open Attendance Reports Hub
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Payroll & Compensation Reports -->
+  <div class="col-12 col-md-6 col-xl-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-4">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="rounded-circle bg-warning bg-opacity-10 text-warning p-3 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
+            <i class="bi bi-cash-coin fs-4"></i>
+          </div>
+          <div>
+            <h5 class="fw-bold mb-0">Payroll & Salary</h5>
+            <small class="text-muted">Cycles & Compensation</small>
+          </div>
+        </div>
+        <p class="small text-secondary mb-4">
+          Weekly, biweekly, three-weekly, and monthly payroll registers, statements, allowances, and statutory deductions.
+        </p>
+        <div class="d-grid gap-2">
+          <a href="{% url 'reports:salary_reports' %}" class="btn btn-outline-warning btn-sm d-flex align-items-center justify-content-center gap-2">
+            <i class="bi bi-receipt"></i> Open Salary Reports Hub
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Instant Export Matrix -->
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-white py-3 border-0">
+    <h5 class="card-title fw-bold mb-1">
+      <i class="bi bi-lightning-charge-fill text-warning me-2"></i>Quick One-Click CSV Exports
+    </h5>
+    <p class="text-muted small mb-0">Pre-filtered CSV downloads formatted with formula injection protection.</p>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Report Category</th>
+            <th>Description</th>
+            <th>Format</th>
+            <th class="text-end">Download</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="fw-semibold">Daily Attendance Ledger</td>
+            <td class="small text-muted">Complete punch log and statuses for today's date.</td>
+            <td><span class="badge bg-secondary-subtle text-secondary">CSV</span></td>
+            <td class="text-end">
+              <a href="{% url 'reports:daily_attendance_csv' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-download me-1"></i> Export
+              </a>
+            </td>
+          </tr>
+          <tr>
+            <td class="fw-semibold">Weekly Attendance Summary</td>
+            <td class="small text-muted">Aggregated attendance records for the past 7 days.</td>
+            <td><span class="badge bg-secondary-subtle text-secondary">CSV</span></td>
+            <td class="text-end">
+              <a href="{% url 'reports:weekly_attendance_csv' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-download me-1"></i> Export
+              </a>
+            </td>
+          </tr>
+          <tr>
+            <td class="fw-semibold">Monthly Attendance Register</td>
+            <td class="small text-muted">All punches and calculated hours for the current calendar month.</td>
+            <td><span class="badge bg-secondary-subtle text-secondary">CSV</span></td>
+            <td class="text-end">
+              <a href="{% url 'reports:monthly_attendance_csv' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-download me-1"></i> Export
+              </a>
+            </td>
+          </tr>
+          <tr>
+            <td class="fw-semibold">Working Hours Summary</td>
+            <td class="small text-muted">Total regular, overtime, and net hours per employee this month.</td>
+            <td><span class="badge bg-secondary-subtle text-secondary">CSV</span></td>
+            <td class="text-end">
+              <a href="{% url 'reports:working_hours_csv' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-download me-1"></i> Export
+              </a>
+            </td>
+          </tr>
+          <tr>
+            <td class="fw-semibold">Overtime Hours Audit</td>
+            <td class="small text-muted">All logged overtime instances exceeding daily standard thresholds.</td>
+            <td><span class="badge bg-secondary-subtle text-secondary">CSV</span></td>
+            <td class="text-end">
+              <a href="{% url 'reports:overtime_csv' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-download me-1"></i> Export
+              </a>
+            </td>
+          </tr>
+          <tr>
+            <td class="fw-semibold">Leave & Absence Records</td>
+            <td class="small text-muted">History of approved, pending, paid, and unpaid leaves.</td>
+            <td><span class="badge bg-secondary-subtle text-secondary">CSV</span></td>
+            <td class="text-end">
+              <a href="{% url 'reports:leave_csv' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-download me-1"></i> Export
+              </a>
+            </td>
+          </tr>
+          {% if not is_owner %}
+          <tr>
+            <td class="fw-semibold">Monthly Payroll Statements</td>
+            <td class="small text-muted">Gross-to-net salary breakdown for monthly salaried employees.</td>
+            <td><span class="badge bg-secondary-subtle text-secondary">CSV</span></td>
+            <td class="text-end">
+              <a href="{% url 'reports:payroll_cycle_csv' %}?cycle=MONTHLY" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-download me-1"></i> Export
+              </a>
+            </td>
+          </tr>
+          <tr>
+            <td class="fw-semibold">Weekly / Biweekly Payroll</td>
+            <td class="small text-muted">Short-cycle payroll records for wage & hourly staff.</td>
+            <td><span class="badge bg-secondary-subtle text-secondary">CSV</span></td>
+            <td class="text-end">
+              <a href="{% url 'reports:payroll_cycle_csv' %}?cycle=WEEKLY" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-download me-1"></i> Export
+              </a>
+            </td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

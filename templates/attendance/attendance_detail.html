@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}Attendance Detail #{{ record.pk }} &bull; {{ COMPANY_NAME }}{% endblock %}
+{% block page_title %}Attendance Record Detail{% endblock %}
+{% block breadcrumbs %}Attendance &bull; <a href="{% url 'attendance:daily_dashboard' %}?date={{ record.work_date|date:'Y-m-d' }}">Daily Tracker</a> &bull; Record #{{ record.pk }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-9 col-xl-8">
+    <!-- Top Details Card -->
+    <div class="card-portal mb-4">
+      <div class="card-header-portal d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-clock-history text-teal"></i>
+          <h5 class="mb-0 fw-bold" style="font-size: 16px;">Attendance Record #{{ record.pk }}</h5>
+        </div>
+        <div class="d-flex gap-2">
+          {% if not is_owner and not record.is_locked_by_payroll %}
+          <a href="{% url 'attendance:attendance_correct' record.pk %}" class="btn btn-warning btn-sm d-flex align-items-center gap-1">
+            <i class="bi bi-pencil-square"></i> Correct Record
+          </a>
+          {% endif %}
+        </div>
+      </div>
+      <div class="card-body-portal">
+        {% if record.is_locked_by_payroll %}
+        <div class="alert alert-secondary d-flex align-items-center gap-2 mb-4" style="font-size: 13px;">
+          <i class="bi bi-lock-fill fs-5 text-secondary"></i>
+          <div>This attendance record is permanently locked by a finalized payroll period. Modifications are prevented.</div>
+        </div>
+        {% endif %}
+
+        <div class="row g-4 mb-4">
+          <!-- Employee Details -->
+          <div class="col-md-6">
+            <h6 class="fw-bold text-navy pb-2 border-bottom mb-3" style="font-size: 13.5px;">Employee Details</h6>
+            <table class="table table-borderless table-sm mb-0" style="font-size: 13px;">
+              <tbody>
+                <tr>
+                  <td class="text-muted" style="width: 40%;">Name</td>
+                  <td class="fw-bold text-navy">
+                    <a href="{% url 'employees:employee_detail' record.employee.pk %}" class="text-navy text-decoration-none">
+                      {{ record.employee.full_name }}
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="text-muted">Employee ID</td>
+                  <td class="font-monospace fw-semibold">{{ record.employee.employee_id }}</td>
+                </tr>
+                <tr>
+                  <td class="text-muted">Department</td>
+                  <td>{{ record.employee.department.name|default:"General" }}</td>
+                </tr>
+                <tr>
+                  <td class="text-muted">Assigned Shift</td>
+                  <td>{{ record.employee.assigned_shift.name|default:"Standard" }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Shift & Hours Summary -->
+          <div class="col-md-6">
+            <h6 class="fw-bold text-navy pb-2 border-bottom mb-3" style="font-size: 13.5px;">Punch & Status</h6>
+            <table class="table table-borderless table-sm mb-0" style="font-size: 13px;">
+              <tbody>
+                <tr>
+                  <td class="text-muted" style="width: 40%;">Work Date</td>
+                  <td class="fw-bold text-navy">{{ record.work_date|date:"l, d M Y" }}</td>
+                </tr>
+                <tr>
+                  <td class="text-muted">Punch Status</td>
+                  <td>
+                    {% if record.status == 'PRESENT' %}
+                      <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">Present</span>
+                    {% elif record.status == 'HALF_DAY' %}
+                      <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1">Half Day</span>
+                    {% elif record.status == 'ABSENT' %}
+                      <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">Absent</span>
+                    {% elif record.status == 'INCOMPLETE' %}
+                      <span class="badge bg-danger text-white px-2 py-1">Incomplete</span>
+                    {% else %}
+                      <span class="badge bg-light text-dark border px-2 py-1">{{ record.get_status_display }}</span>
+                    {% endif %}
+                    {% if record.is_late %}<span class="badge bg-warning text-dark ms-1">Late ({{ record.late_minutes }} min)</span>{% endif %}
+                  </td>
+                </tr>
+                <tr>
+                  <td class="text-muted">Check-In</td>
+                  <td class="font-monospace fw-semibold">{{ record.check_in|date:"d M Y, H:i"|default:"—" }}</td>
+                </tr>
+                <tr>
+                  <td class="text-muted">Check-Out</td>
+                  <td class="font-monospace fw-semibold">{{ record.check_out|date:"d M Y, H:i"|default:"—" }}</td>
+                </tr>
+                <tr>
+                  <td class="text-muted">Unpaid Break</td>
+                  <td>{{ record.break_duration_minutes }} Minutes</td>
+                </tr>
+                <tr>
+                  <td class="text-muted">Net Working Hours</td>
+                  <td class="fw-bold text-teal fs-6">{{ record.net_working_hours }} Hours</td>
+                </tr>
+                <tr>
+                  <td class="text-muted">Overtime Hours</td>
+                  <td class="fw-semibold text-info">{{ record.overtime_hours }} Hours</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Audit Metadata -->
+        <div class="p-3 bg-light rounded border text-muted small">
+          <div class="row g-2">
+            <div class="col-sm-6">
+              <span>Created By: <strong>{{ record.created_by.username|default:"System" }}</strong></span> &bull;
+              <span>{{ record.created_at|date:"d M Y, H:i" }}</span>
+            </div>
+            <div class="col-sm-6 text-sm-end">
+              <span>Last Modified By: <strong>{{ record.last_modified_by.username|default:"—" }}</strong></span> &bull;
+              <span>{{ record.updated_at|date:"d M Y, H:i" }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Immutable Correction Trail -->
+    <div class="card-portal">
+      <div class="card-header-portal">
+        <i class="bi bi-shield-check text-navy"></i>
+        <h6 class="mb-0 fw-bold">Immutable Correction Trail</h6>
+      </div>
+      <div class="table-responsive">
+        <table class="table-portal align-middle mb-0" style="font-size: 12.5px;">
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Modified By</th>
+              <th>Reason for Correction</th>
+              <th>Before vs After Snapshot</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for log in correction_logs %}
+            <tr>
+              <td class="text-muted font-monospace" style="white-space: nowrap;">{{ log.timestamp|date:"d M Y, H:i" }}</td>
+              <td class="fw-semibold text-navy">{{ log.modified_by.username }}</td>
+              <td>{{ log.reason }}</td>
+              <td>
+                <button class="btn btn-xs btn-outline-secondary py-0 px-2" type="button" data-bs-toggle="collapse" data-bs-target="#logDiff{{ log.pk }}">
+                  View Diff
+                </button>
+                <div class="collapse mt-2" id="logDiff{{ log.pk }}">
+                  <div class="p-2 bg-light border rounded font-monospace" style="font-size: 11px;">
+                    <div><strong>Old:</strong> {{ log.old_values }}</div>
+                    <div><strong>New:</strong> {{ log.new_values }}</div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="4" class="text-center py-3 text-muted">No post-entry corrections recorded. Record is in its original state.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

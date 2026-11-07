@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Delete Holiday &bull; {{ holiday.name }} &bull; {{ COMPANY_NAME }}{% endblock %}
+{% block page_title %}Delete Holiday{% endblock %}
+{% block breadcrumbs %}Attendance &bull; <a href="{% url 'attendance:holiday_list' %}">Holidays</a> &bull; Delete {{ holiday.name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-5 col-md-7">
+    <div class="card-portal border-danger shadow-sm">
+      <div class="card-header-portal bg-danger-subtle text-danger py-3">
+        <div class="stat-icon red" style="width: 40px; height: 40px; font-size: 20px;">
+          <i class="bi bi-calendar-x-fill"></i>
+        </div>
+        <div>
+          <h5 class="mb-0 fw-bold text-danger" style="font-size: 16px;">Delete Holiday</h5>
+          <small class="text-danger-emphasis">Remove company holiday from calendar.</small>
+        </div>
+      </div>
+
+      <div class="card-body-portal p-4">
+        <div class="p-3 bg-light rounded-3 border mb-4">
+          <div class="fw-bold text-navy fs-5 mb-1">{{ holiday.name }}</div>
+          <div class="text-muted small">
+            Date: <span class="badge bg-light text-navy border font-monospace">{{ holiday.date|date:"l, d F Y" }}</span> &bull;
+            Type: <strong>{% if holiday.is_paid %}Paid Holiday{% else %}Unpaid{% endif %}</strong>
+          </div>
+          {% if holiday.description %}
+            <div class="text-muted small mt-2 fst-italic">{{ holiday.description }}</div>
+          {% endif %}
+        </div>
+
+        <p class="text-muted small mb-4">
+          Are you sure you want to delete the holiday <strong>{{ holiday.name }}</strong> ({{ holiday.date|date:"d M Y" }})?
+        </p>
+
+        <form method="post">
+          {% csrf_token %}
+          <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+            <a href="{% url 'attendance:holiday_list' %}" class="btn btn-light border px-4">Cancel</a>
+            <button type="submit" class="btn btn-danger px-4">
+              <i class="bi bi-trash3 me-1"></i> Delete Holiday
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
