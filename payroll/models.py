@@ -111,6 +111,24 @@ class PayrollPeriod(models.Model):
         return val if val is not None else Decimal("0.00")
 
     @property
+    def total_paid_count(self):
+        return self.statements.filter(is_paid=True).count()
+
+    @property
+    def total_unpaid_count(self):
+        return self.statements.filter(is_paid=False).count()
+
+    @property
+    def total_paid_amount(self):
+        val = self.statements.filter(is_paid=True).aggregate(total=models.Sum("net_pay"))["total"]
+        return val if val is not None else Decimal("0.00")
+
+    @property
+    def total_unpaid_amount(self):
+        val = self.statements.filter(is_paid=False).aggregate(total=models.Sum("net_pay"))["total"]
+        return val if val is not None else Decimal("0.00")
+
+    @property
     def created_at(self):
         return self.generated_at
 
@@ -190,6 +208,28 @@ class PayrollStatement(models.Model):
         on_delete=models.SET_NULL, related_name="statements_finalized"
     )
 
+    # Wage Disbursement / Payment Tracking
+    is_paid = models.BooleanField(
+        default=False, db_index=True,
+        help_text="True if wages have been disbursed to the employee."
+    )
+    paid_at = models.DateTimeField(null=True, blank=True)
+    paid_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name="statements_paid"
+    )
+    payment_method = models.CharField(
+        max_length=50, default="BANK_TRANSFER",
+        choices=[
+            ("BANK_TRANSFER", "Bank Transfer"),
+            ("CASH", "Cash"),
+            ("CHEQUE", "Cheque"),
+            ("UPI", "UPI"),
+        ],
+        blank=True,
+    )
+    payment_remarks = models.CharField(max_length=255, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -199,6 +239,21 @@ class PayrollStatement(models.Model):
 
     def __str__(self):
         return f"{self.employee.employee_id} | {self.payroll_period} | ₹{self.net_pay}"
+
+    def mark_paid(self, by_user, method="BANK_TRANSFER", remarks=""):
+        self.is_paid = True
+        self.paid_at = timezone.now()
+        self.paid_by = by_user
+        self.payment_method = method or "BANK_TRANSFER"
+        self.payment_remarks = remarks or ""
+        self.save(update_fields=["is_paid", "paid_at", "paid_by", "payment_method", "payment_remarks", "updated_at"])
+
+    def mark_unpaid(self):
+        self.is_paid = False
+        self.paid_at = None
+        self.paid_by = None
+        self.payment_remarks = ""
+        self.save(update_fields=["is_paid", "paid_at", "paid_by", "payment_remarks", "updated_at"])
 
     def finalize(self, by_user):
         """Mark statement as finalized and lock it. Must be called inside a transaction."""

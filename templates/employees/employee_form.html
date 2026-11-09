@@ -102,8 +102,13 @@
               {% if form.department.errors %}<div class="text-danger small mt-1">{% for e in form.department.errors %}{{ e }}{% endfor %}</div>{% endif %}
             </div>
             <div class="col-md-4">
-              <label for="id_designation" class="form-label fw-semibold" style="font-size: 13px;">Designation</label>
+              <label for="id_designation" class="form-label fw-semibold" style="font-size: 13px;">Designation *</label>
               {{ form.designation }}
+              <datalist id="designationsList">
+                {% for d in existing_designations %}
+                  <option value="{{ d.name }}">{{ d.name }} ({{ d.department.name }})</option>
+                {% endfor %}
+              </datalist>
               {% if form.designation.errors %}<div class="text-danger small mt-1">{% for e in form.designation.errors %}{{ e }}{% endfor %}</div>{% endif %}
             </div>
             <div class="col-md-4">

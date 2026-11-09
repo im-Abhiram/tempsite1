@@ -13,6 +13,9 @@
         &larr; Back to Period
       </a>
       <div class="d-flex gap-2">
+        <a href="{% url 'reports:statement_excel' statement.pk %}" class="btn btn-outline-success btn-sm d-flex align-items-center gap-1">
+          <i class="bi bi-file-earmark-excel"></i> Download Excel Payslip
+        </a>
         <button type="button" class="btn btn-outline-dark btn-sm d-flex align-items-center gap-1" onclick="window.print()">
           <i class="bi bi-printer"></i> Print Payslip
         </button>
@@ -74,6 +77,21 @@
               <tr>
                 <td class="text-muted">Cycle Type:</td>
                 <td>{{ statement.payroll_period.get_cycle_type_display }}</td>
+              </tr>
+              <tr>
+                <td class="text-muted">Wage Paid:</td>
+                <td>
+                  {% if statement.is_paid %}
+                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                      <i class="bi bi-check-circle-fill me-1"></i>PAID ({{ statement.get_payment_method_display }})
+                    </span>
+                    {% if statement.paid_at %}<small class="text-muted d-block mt-1">{{ statement.paid_at|date:"d M Y, H:i" }}</small>{% endif %}
+                  {% else %}
+                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1">
+                      <i class="bi bi-clock-history me-1"></i>PENDING / UNPAID
+                    </span>
+                  {% endif %}
+                </td>
               </tr>
             </tbody>
           </table>

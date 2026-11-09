@@ -189,3 +189,143 @@ class StatementDetailView(AnyRoleMixin, View):
             "statement": stmt,
             "show_breakdown": show_breakdown,
         })
+
+
+class WageDisbursementGlobalView(AccountantOrSuperadminMixin, View):
+    """Global index of payroll periods and wage disbursement statuses."""
+    template_name = "payroll/wage_disbursement_global.html"
+
+    def get(self, request):
+        periods = PayrollPeriod.objects.prefetch_related("statements").order_by("-start_date")
+        return render(request, self.template_name, {"periods": periods})
+
+
+class WageDisbursementView(AccountantOrSuperadminMixin, View):
+    """
+    Dedicated page to view and mark whether wages have been paid or are pending
+    for each employee in a specific payroll period.
+    """
+    template_name = "payroll/wage_disbursement.html"
+
+    def get(self, request, period_pk):
+        period = get_object_or_404(PayrollPeriod, pk=period_pk)
+        status_filter = request.GET.get("status", "all").lower()
+
+        statements_qs = (
+            PayrollStatement.objects
+            .filter(payroll_period=period)
+            .select_related("employee", "employee__department", "employee__designation", "paid_by")
+            .order_by("is_paid", "employee__employee_id")
+        )
+
+        if status_filter == "paid":
+            statements = statements_qs.filter(is_paid=True)
+        elif status_filter == "unpaid":
+            statements = statements_qs.filter(is_paid=False)
+        else:
+            statements = statements_qs
+
+        total_count = period.statements.count()
+        paid_count = period.total_paid_count
+        unpaid_count = period.total_unpaid_count
+        paid_pct = round((paid_count / total_count * 100), 1) if total_count > 0 else 0
+
+        return render(request, self.template_name, {
+            "period": period,
+            "statements": statements,
+            "status_filter": status_filter,
+            "total_count": total_count,
+            "paid_count": paid_count,
+            "unpaid_count": unpaid_count,
+            "paid_pct": paid_pct,
+            "total_payable": period.total_net_pay,
+            "total_paid": period.total_paid_amount,
+            "total_unpaid": period.total_unpaid_amount,
+        })
+
+
+class WageMarkPaidToggleView(AccountantOrSuperadminMixin, View):
+    """
+    Toggle paid/unpaid status for an individual employee's wage statement.
+    """
+    def post(self, request, pk):
+        stmt = get_object_or_404(
+            PayrollStatement.objects.select_related("employee", "payroll_period"),
+            pk=pk,
+        )
+        action = request.POST.get("action", "mark_paid")
+        next_url = request.POST.get("next") or request.META.get("HTTP_REFERER") or redirect("payroll:period_payments", period_pk=stmt.payroll_period.pk)
+
+        if action == "mark_paid":
+            method = request.POST.get("payment_method", "BANK_TRANSFER")
+            remarks = request.POST.get("payment_remarks", "").strip()
+            with transaction.atomic():
+                stmt.mark_paid(by_user=request.user, method=method, remarks=remarks)
+                audit_log(
+                    actor=request.user, action="WAGE_PAYMENT_UPDATE",
+                    target_model="PayrollStatement", target_id=str(stmt.pk),
+                    ip_address=request.META.get("REMOTE_ADDR"),
+                    extra={
+                        "employee_id": stmt.employee.employee_id,
+                        "status": "PAID",
+                        "method": method,
+                        "amount": str(stmt.net_pay),
+                    },
+                )
+            messages.success(
+                request,
+                f"Wage of ₹{stmt.net_pay} for {stmt.employee.full_name} marked as PAID ({stmt.get_payment_method_display()})."
+            )
+        else:
+            with transaction.atomic():
+                stmt.mark_unpaid()
+                audit_log(
+                    actor=request.user, action="WAGE_PAYMENT_UPDATE",
+                    target_model="PayrollStatement", target_id=str(stmt.pk),
+                    ip_address=request.META.get("REMOTE_ADDR"),
+                    extra={
+                        "employee_id": stmt.employee.employee_id,
+                        "status": "UNPAID",
+                        "amount": str(stmt.net_pay),
+                    },
+                )
+            messages.info(request, f"Wage payment for {stmt.employee.full_name} reverted to UNPAID.")
+
+        if isinstance(next_url, str):
+            return redirect(next_url)
+        return next_url
+
+
+class WageBulkMarkPaidView(AccountantOrSuperadminMixin, View):
+    """
+    Bulk marks all unpaid statements in a payroll period as paid.
+    """
+    def post(self, request, period_pk):
+        period = get_object_or_404(PayrollPeriod, pk=period_pk)
+        method = request.POST.get("payment_method", "BANK_TRANSFER")
+        remarks = request.POST.get("payment_remarks", "Bulk disbursement").strip()
+
+        unpaid_stmts = period.statements.filter(is_paid=False)
+        count = unpaid_stmts.count()
+
+        if count == 0:
+            messages.info(request, "All employee wages for this period are already marked as Paid.")
+            return redirect("payroll:period_payments", period_pk=period.pk)
+
+        with transaction.atomic():
+            for stmt in unpaid_stmts:
+                stmt.mark_paid(by_user=request.user, method=method, remarks=remarks)
+
+            audit_log(
+                actor=request.user, action="WAGE_BULK_PAYMENT",
+                target_model="PayrollPeriod", target_id=str(period.pk),
+                ip_address=request.META.get("REMOTE_ADDR"),
+                extra={
+                    "period_id": period.pk,
+                    "count": count,
+                    "method": method,
+                },
+            )
+
+        messages.success(request, f"Successfully marked {count} employee wage statement(s) as PAID via {method}.")
+        return redirect("payroll:period_payments", period_pk=period.pk)

@@ -1,0 +1,363 @@
+{% extends "base.html" %}
+
+{% block title %}Wage Payment Tracking &bull; {{ period.start_date|date:"d M Y" }} &ndash; {{ period.end_date|date:"d M Y" }} &bull; {{ COMPANY_NAME }}{% endblock %}
+{% block page_title %}Wage Payment & Disbursement Tracking{% endblock %}
+{% block breadcrumbs %}Payroll &bull; <a href="{% url 'payroll:period_detail' period.pk %}">Period #{{ period.pk }}</a> &bull; Wage Payments{% endblock %}
+
+{% block content %}
+<!-- Top Header & Action Controls -->
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+  <div>
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <h4 class="mb-0 fw-bold text-navy">Wage Disbursement Tracking</h4>
+      <span class="badge bg-light text-navy border px-2 py-1 font-monospace" style="font-size: 11px;">
+        {{ period.get_cycle_type_display }}
+      </span>
+      {% if period.status == "FINALIZED" %}
+        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" style="font-size: 11px;">Finalized</span>
+      {% elif period.status == "REVIEWED" %}
+        <span class="badge bg-info-subtle text-info border border-info-subtle px-2 py-1" style="font-size: 11px;">Reviewed</span>
+      {% else %}
+        <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1" style="font-size: 11px;">Draft</span>
+      {% endif %}
+    </div>
+    <p class="text-muted small mb-0">
+      Period: <strong>{{ period.start_date|date:"d M Y" }} &ndash; {{ period.end_date|date:"d M Y" }}</strong> ({{ period.duration_days }} calendar days)
+    </p>
+  </div>
+
+  <div class="d-flex flex-wrap align-items-center gap-2">
+    <a href="{% url 'payroll:period_detail' period.pk %}" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1">
+      <i class="bi bi-arrow-left"></i> Period Overview
+    </a>
+
+    <!-- Download Excel Wage Sheet -->
+    <a href="{% url 'reports:payroll_excel' period.pk %}" class="btn btn-outline-success btn-sm d-flex align-items-center gap-1 shadow-sm">
+      <i class="bi bi-file-earmark-excel"></i> Export Excel Wage Sheet
+    </a>
+
+    <!-- Bulk Mark All Paid Button -->
+    {% if unpaid_count > 0 %}
+    <button type="button" class="btn btn-primary btn-sm d-flex align-items-center gap-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#bulkPayModal">
+      <i class="bi bi-check2-all"></i> Mark All as Paid ({{ unpaid_count }})
+    </button>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Summary Metrics Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="stat-card" style="border-left: 4px solid var(--portal-navy);">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <span class="stat-label">Total Net Wages Payable</span>
+          <div class="stat-value text-navy">{{ CURRENCY_SYMBOL }} {{ total_payable|floatformat:2 }}</div>
+          <span class="stat-meta">{{ total_count }} total employee statement{{ total_count|pluralize }}</span>
+        </div>
+        <div class="stat-icon navy">
+          <i class="bi bi-wallet2"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="stat-card" style="border-left: 4px solid var(--portal-teal);">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <span class="stat-label">Disbursed (Paid) Wages</span>
+          <div class="stat-value text-teal">{{ CURRENCY_SYMBOL }} {{ total_paid|floatformat:2 }}</div>
+          <span class="stat-meta text-success fw-semibold">{{ paid_count }} of {{ total_count }} paid ({{ paid_pct }}%)</span>
+        </div>
+        <div class="stat-icon teal">
+          <i class="bi bi-check-circle-fill"></i>
+        </div>
+      </div>
+      <!-- Progress Bar -->
+      <div class="progress mt-3" style="height: 6px;">
+        <div class="progress-bar bg-teal" role="progressbar" style="width: {{ paid_pct }}%;" aria-valuenow="{{ paid_pct }}" aria-valuemin="0" aria-valuemax="100"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="stat-card" style="border-left: 4px solid #F59E0B;">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <span class="stat-label">Pending Disbursement</span>
+          <div class="stat-value text-warning">{{ CURRENCY_SYMBOL }} {{ total_unpaid|floatformat:2 }}</div>
+          <span class="stat-meta text-muted">{{ unpaid_count }} employee{{ unpaid_count|pluralize }} awaiting payment</span>
+        </div>
+        <div class="stat-icon amber">
+          <i class="bi bi-clock-history"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filter Pills -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div class="btn-group" role="group">
+    <a href="?status=all" class="btn btn-sm {% if status_filter == 'all' %}btn-navy text-white{% else %}btn-outline-secondary{% endif %}">
+      All Employees ({{ total_count }})
+    </a>
+    <a href="?status=unpaid" class="btn btn-sm {% if status_filter == 'unpaid' %}btn-warning text-dark fw-semibold{% else %}btn-outline-secondary{% endif %}">
+      <i class="bi bi-hourglass-split me-1"></i>Pending / Unpaid ({{ unpaid_count }})
+    </a>
+    <a href="?status=paid" class="btn btn-sm {% if status_filter == 'paid' %}btn-success text-white{% else %}btn-outline-secondary{% endif %}">
+      <i class="bi bi-check-circle-fill me-1"></i>Paid ({{ paid_count }})
+    </a>
+  </div>
+</div>
+
+<!-- Employees Wage Statements Ledger -->
+<div class="card-portal">
+  <div class="table-responsive">
+    <table class="table-portal align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Sl</th>
+          <th>Employee</th>
+          <th>Department & Role</th>
+          <th>Bank Details</th>
+          <th class="text-center">Present / Absent</th>
+          <th class="text-end">Base Wage</th>
+          <th class="text-end">Overtime</th>
+          <th class="text-end">Net Wage (₹)</th>
+          <th class="text-center">Wage Status</th>
+          <th>Remarks / Info</th>
+          <th class="text-end">Payment Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for stmt in statements %}
+        <tr class="{% if stmt.is_paid %}table-light-success{% endif %}">
+          <td class="text-muted small">{{ forloop.counter }}</td>
+          <td>
+            <a href="{% url 'payroll:statement_detail' stmt.pk %}" class="fw-bold text-navy text-decoration-none d-block">
+              {{ stmt.employee.full_name }}
+            </a>
+            <span class="badge bg-light text-muted border font-monospace" style="font-size: 10px;">{{ stmt.employee.employee_id }}</span>
+          </td>
+          <td>
+            <div class="small fw-semibold text-navy">{{ stmt.employee.department.name|default:"General" }}</div>
+            <div class="text-muted small" style="font-size: 11px;">{{ stmt.employee.designation.name|default:"Staff" }}</div>
+          </td>
+          <td>
+            {% if stmt.employee.bank_account_number %}
+              <div class="small font-monospace text-navy fw-semibold">{{ stmt.employee.bank_account_number }}</div>
+              <div class="text-muted small" style="font-size: 10px;">{{ stmt.employee.bank_name }} &bull; {{ stmt.employee.bank_ifsc_code }}</div>
+            {% else %}
+              <span class="text-muted small fst-italic">Cash / No Bank Recorded</span>
+            {% endif %}
+          </td>
+          <td class="text-center">
+            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 small" title="Present days">
+              {{ stmt.payable_days }}d
+            </span>
+            {% if stmt.absent_days > 0 %}
+              <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 small ms-1" title="Absent days">
+                {{ stmt.absent_days }}d
+              </span>
+            {% endif %}
+          </td>
+          <td class="text-end font-monospace text-muted small">
+            {{ CURRENCY_SYMBOL }} {{ stmt.base_pay|floatformat:2 }}
+          </td>
+          <td class="text-end font-monospace text-muted small">
+            {% if stmt.overtime_pay > 0 %}
+              <span class="text-primary fw-semibold">+{{ CURRENCY_SYMBOL }} {{ stmt.overtime_pay|floatformat:2 }}</span>
+            {% else %}
+              <span class="text-muted">&ndash;</span>
+            {% endif %}
+          </td>
+          <td class="text-end font-monospace fw-bold text-navy fs-6">
+            {{ CURRENCY_SYMBOL }} {{ stmt.net_pay|floatformat:2 }}
+          </td>
+          <td class="text-center">
+            {% if stmt.is_paid %}
+              <span class="badge bg-success text-white px-2 py-1" style="font-size: 11px;">
+                <i class="bi bi-check-circle-fill me-1"></i>PAID
+              </span>
+            {% else %}
+              <span class="badge bg-warning text-dark px-2 py-1 fw-bold" style="font-size: 11px;">
+                <i class="bi bi-clock-history me-1"></i>UNPAID
+              </span>
+            {% endif %}
+          </td>
+          <td>
+            {% if stmt.is_paid %}
+              <div class="small fw-semibold text-navy">{{ stmt.get_payment_method_display }}</div>
+              {% if stmt.payment_remarks %}
+                <div class="text-muted small fst-italic" style="font-size: 11px;">{{ stmt.payment_remarks }}</div>
+              {% endif %}
+              {% if stmt.paid_at %}
+                <div class="text-muted small" style="font-size: 10px;">{{ stmt.paid_at|date:"d M, H:i" }}</div>
+              {% endif %}
+            {% else %}
+              <span class="text-muted small fst-italic">Pending disbursement</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            {% if stmt.is_paid %}
+              <!-- Revert to Unpaid -->
+              <form action="{% url 'payroll:toggle_payment' stmt.pk %}" method="post" class="d-inline">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="mark_unpaid">
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <button type="submit" class="btn btn-outline-secondary btn-sm py-1 px-2" style="font-size: 11.5px;" title="Revert to Unpaid status" onclick="return confirm('Revert wage payment for {{ stmt.employee.full_name }} to UNPAID?');">
+                  <i class="bi bi-arrow-counterclockwise"></i> Unmark
+                </button>
+              </form>
+            {% else %}
+              <!-- Trigger Mark Paid Modal -->
+              <button type="button" class="btn btn-success btn-sm py-1 px-2 d-inline-flex align-items-center gap-1" style="font-size: 11.5px; font-weight: 500;" data-bs-toggle="modal" data-bs-target="#payModal{{ stmt.pk }}">
+                <i class="bi bi-check2"></i> Mark Paid
+              </button>
+
+              <!-- Individual Pay Modal -->
+              <div class="modal fade" id="payModal{{ stmt.pk }}" tabindex="-1" aria-labelledby="payModalLabel{{ stmt.pk }}" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered text-start">
+                  <div class="modal-content border-0 shadow">
+                    <div class="modal-header bg-navy text-white py-3">
+                      <h5 class="modal-title fs-6" id="payModalLabel{{ stmt.pk }}">
+                        <i class="bi bi-cash-stack me-2 text-teal"></i>Mark Wage Paid: {{ stmt.employee.full_name }}
+                      </h5>
+                      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form action="{% url 'payroll:toggle_payment' stmt.pk %}" method="post">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="mark_paid">
+                      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+
+                      <div class="modal-body p-4">
+                        <div class="p-3 bg-light rounded border mb-3">
+                          <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="text-muted small">Employee:</span>
+                            <span class="fw-bold text-navy">{{ stmt.employee.full_name }} ({{ stmt.employee.employee_id }})</span>
+                          </div>
+                          <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="text-muted small">Net Wage Amount:</span>
+                            <span class="fw-bold text-navy fs-5 font-monospace">{{ CURRENCY_SYMBOL }} {{ stmt.net_pay|floatformat:2 }}</span>
+                          </div>
+                          {% if stmt.employee.bank_account_number %}
+                          <div class="d-flex justify-content-between align-items-center small">
+                            <span class="text-muted">Bank Account:</span>
+                            <span class="font-monospace text-dark">{{ stmt.employee.bank_name }} &bull; {{ stmt.employee.bank_account_number }}</span>
+                          </div>
+                          {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                          <label class="form-label fw-semibold" style="font-size: 13px;">Payment Method *</label>
+                          <select name="payment_method" class="form-select">
+                            <option value="BANK_TRANSFER" selected>Bank Transfer (NEFT/RTGS/IMPS)</option>
+                            <option value="CASH">Cash</option>
+                            <option value="UPI">UPI</option>
+                            <option value="CHEQUE">Cheque</option>
+                          </select>
+                        </div>
+
+                        <div class="mb-0">
+                          <label class="form-label fw-semibold" style="font-size: 13px;">Payment Remarks / Transaction Reference</label>
+                          <input type="text" name="payment_remarks" class="form-control" placeholder="e.g. UTR / Ref #, Cheque #, or Disbursement Note">
+                        </div>
+                      </div>
+
+                      <div class="modal-footer bg-light py-2">
+                        <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-success px-4">
+                          <i class="bi bi-check-circle-fill me-1"></i> Confirm Wage Paid
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="11" class="text-center py-5 text-muted">
+            <i class="bi bi-inbox fs-3 d-block mb-2 text-secondary"></i>
+            No employee wage statements found matching filter "<strong>{{ status_filter }}</strong>".
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      {% if statements %}
+      <tfoot class="table-light fw-bold">
+        <tr>
+          <td colspan="4" class="text-end text-navy">TOTALS (CURRENT VIEW):</td>
+          <td class="text-center text-navy">{{ total_count }} Employees</td>
+          <td class="text-end font-monospace text-muted">{{ CURRENCY_SYMBOL }} {{ period.total_base_pay|floatformat:2 }}</td>
+          <td class="text-end font-monospace text-primary">+{{ CURRENCY_SYMBOL }} {{ period.total_overtime_pay|floatformat:2 }}</td>
+          <td class="text-end font-monospace text-navy fs-6">{{ CURRENCY_SYMBOL }} {{ total_payable|floatformat:2 }}</td>
+          <td colspan="3" class="text-end text-muted small">
+            {{ paid_count }} Paid &bull; {{ unpaid_count }} Unpaid
+          </td>
+        </tr>
+      </tfoot>
+      {% endif %}
+    </table>
+  </div>
+</div>
+
+<!-- Bulk Mark All Paid Modal -->
+{% if unpaid_count > 0 %}
+<div class="modal fade" id="bulkPayModal" tabindex="-1" aria-labelledby="bulkPayModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header bg-navy text-white py-3">
+        <h5 class="modal-title fs-6" id="bulkPayModalLabel">
+          <i class="bi bi-check2-all me-2 text-teal"></i>Bulk Mark All Wages as Paid
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form action="{% url 'payroll:bulk_mark_paid' period.pk %}" method="post">
+        {% csrf_token %}
+        <div class="modal-body p-4">
+          <div class="p-3 bg-light rounded border mb-3">
+            <p class="mb-1 text-muted small">You are about to mark all remaining unpaid employees for this period as <strong>PAID</strong>:</p>
+            <div class="d-flex justify-content-between align-items-center mt-2">
+              <span class="text-muted small">Pending Employees:</span>
+              <span class="badge bg-warning text-dark font-monospace fs-6">{{ unpaid_count }} Employees</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-1">
+              <span class="text-muted small">Total Pending Wages:</span>
+              <span class="fw-bold text-navy fs-5 font-monospace">{{ CURRENCY_SYMBOL }} {{ total_unpaid|floatformat:2 }}</span>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold" style="font-size: 13px;">Payment Method *</label>
+            <select name="payment_method" class="form-select">
+              <option value="BANK_TRANSFER" selected>Bank Transfer (NEFT/RTGS/IMPS)</option>
+              <option value="CASH">Cash</option>
+              <option value="UPI">UPI</option>
+              <option value="CHEQUE">Cheque</option>
+            </select>
+          </div>
+
+          <div class="mb-0">
+            <label class="form-label fw-semibold" style="font-size: 13px;">Disbursement Remarks / Batch Reference</label>
+            <input type="text" name="payment_remarks" class="form-control" placeholder="e.g. Batch Bank Transfer - All Accounts Credited">
+          </div>
+        </div>
+
+        <div class="modal-footer bg-light py-2">
+          <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary px-4">
+            <i class="bi bi-check2-all me-1"></i> Confirm Bulk Mark as Paid
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+

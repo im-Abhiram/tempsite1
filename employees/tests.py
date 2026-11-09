@@ -144,4 +144,35 @@ class EmployeeManagementTests(TestCase):
         self.assertNotContains(owner_res, "123456789012")
         self.assertContains(owner_res, "Disbursement and bank details are confidential")
 
+    def test_shift_delete_view(self):
+        self.client.force_login(self.accountant)
+        shift = Shift.objects.create(name="Temporary Evening", start_time="17:00", end_time="23:00")
+        del_res = self.client.post(reverse("employees:shift_delete", args=[shift.pk]))
+        self.assertRedirects(del_res, reverse("employees:shift_list"))
+        self.assertFalse(Shift.objects.filter(pk=shift.pk).exists())
+
+    def test_employee_creation_with_text_designation(self):
+        self.client.force_login(self.accountant)
+        post_data = {
+            "first_name": "Rohan",
+            "last_name": "Kumar",
+            "phone": "9876543210",
+            "residential_address": "Kochi, Kerala",
+            "emergency_contact_name": "Anil",
+            "emergency_contact_phone": "9876543211",
+            "department": self.dept.pk,
+            "designation": "Lead Architect",  # Entered as text!
+            "date_of_joining": "2026-01-01",
+            "employment_status": "ACTIVE",
+            "employment_type": "FULL_TIME",
+            "salary_calculation_method": "MONTHLY",
+            "base_salary_rate": "60000.00",
+            "standard_working_hours": "8.00",
+        }
+        res = self.client.post(reverse("employees:employee_create"), post_data)
+        self.assertEqual(res.status_code, 302)
+        emp = Employee.objects.get(first_name="Rohan")
+        self.assertEqual(emp.designation.name, "Lead Architect")
+        self.assertEqual(emp.designation.department, self.dept)
+
 

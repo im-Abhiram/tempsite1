@@ -155,6 +155,7 @@ class EmployeeCreateView(AccountantOrSuperadminMixin, View):
         return render(request, self.template_name, {
             "form": EmployeeForm(),
             "action": "Create Employee",
+            "existing_designations": Designation.objects.select_related("department").all(),
         })
 
     def post(self, request):
@@ -182,7 +183,11 @@ class EmployeeCreateView(AccountantOrSuperadminMixin, View):
                 )
             messages.success(request, f"Employee '{employee.full_name}' ({employee.employee_id}) created.")
             return redirect("employees:employee_detail", pk=employee.pk)
-        return render(request, self.template_name, {"form": form, "action": "Create Employee"})
+        return render(request, self.template_name, {
+            "form": form,
+            "action": "Create Employee",
+            "existing_designations": Designation.objects.select_related("department").all(),
+        })
 
 
 class EmployeeUpdateView(AccountantOrSuperadminMixin, View):
@@ -195,6 +200,7 @@ class EmployeeUpdateView(AccountantOrSuperadminMixin, View):
             "form": EmployeeForm(instance=employee),
             "action": "Edit Employee",
             "employee": employee,
+            "existing_designations": Designation.objects.select_related("department").all(),
         })
 
     def post(self, request, pk):
@@ -213,7 +219,10 @@ class EmployeeUpdateView(AccountantOrSuperadminMixin, View):
             messages.success(request, f"Employee '{employee.full_name}' updated.")
             return redirect("employees:employee_detail", pk=employee.pk)
         return render(request, self.template_name, {
-            "form": form, "action": "Edit Employee", "employee": employee,
+            "form": form,
+            "action": "Edit Employee",
+            "employee": employee,
+            "existing_designations": Designation.objects.select_related("department").all(),
         })
 
 
@@ -490,3 +499,35 @@ class ShiftCreateView(AccountantOrSuperadminMixin, View):
             messages.success(request, "Shift created.")
             return redirect("employees:shift_list")
         return render(request, "employees/lookup_form.html", {"form": form, "title": "Add Shift"})
+
+
+class ShiftDeleteView(AccountantOrSuperadminMixin, View):
+    template_name = "employees/shift_confirm_delete.html"
+
+    def get(self, request, pk):
+        shift = get_object_or_404(Shift, pk=pk)
+        return render(request, self.template_name, {
+            "shift": shift,
+            "employee_count": shift.employees.count(),
+        })
+
+    def post(self, request, pk):
+        shift = get_object_or_404(Shift, pk=pk)
+        shift_name = shift.name
+        emp_count = shift.employees.count()
+        with transaction.atomic():
+            shift.delete()
+            audit_log(
+                actor=request.user, action="SHIFT_DELETE",
+                target_model="Shift", target_id=str(pk),
+                ip_address=request.META.get("REMOTE_ADDR"),
+                extra={"name": shift_name, "unassigned_employees": emp_count},
+            )
+        if emp_count > 0:
+            messages.success(
+                request,
+                f"Shift '{shift_name}' deleted successfully. {emp_count} employee(s) who had this shift have been unassigned."
+            )
+        else:
+            messages.success(request, f"Shift '{shift_name}' deleted successfully.")
+        return redirect("employees:shift_list")

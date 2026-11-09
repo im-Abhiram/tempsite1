@@ -30,4 +30,5 @@ urlpatterns = [
     # Shifts
     path("shifts/", views.ShiftListView.as_view(), name="shift_list"),
     path("shifts/create/", views.ShiftCreateView.as_view(), name="shift_create"),
+    path("shifts/<int:pk>/delete/", views.ShiftDeleteView.as_view(), name="shift_delete"),
 ]

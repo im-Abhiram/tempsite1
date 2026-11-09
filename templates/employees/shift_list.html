@@ -29,6 +29,9 @@
           <th>Unpaid Break</th>
           <th>Overnight / Night Shift</th>
           <th>Status</th>
+          {% if not is_owner %}
+          <th class="text-end">Actions</th>
+          {% endif %}
         </tr>
       </thead>
       <tbody>
@@ -62,10 +65,50 @@
               <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1">Inactive</span>
             {% endif %}
           </td>
+          {% if not is_owner %}
+          <td class="text-end">
+            <button type="button" class="btn btn-outline-danger btn-sm px-2 py-1" data-bs-toggle="modal" data-bs-target="#deleteShiftModal{{ s.pk }}" title="Delete Shift">
+              <i class="bi bi-trash3"></i> Delete
+            </button>
+
+            <!-- Inline Delete Modal -->
+            <div class="modal fade" id="deleteShiftModal{{ s.pk }}" tabindex="-1" aria-labelledby="deleteShiftModalLabel{{ s.pk }}" aria-hidden="true">
+              <div class="modal-dialog modal-dialog-centered text-start">
+                <div class="modal-content border-0 shadow">
+                  <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title fs-6" id="deleteShiftModalLabel{{ s.pk }}">
+                      <i class="bi bi-exclamation-triangle-fill me-2"></i>Delete Shift: {{ s.name }}
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
+                  <div class="modal-body p-4">
+                    <p class="mb-2">Are you sure you want to delete the shift <strong>{{ s.name }}</strong> ({{ s.start_time|time:"H:i" }} &ndash; {{ s.end_time|time:"H:i" }})?</p>
+                    {% if s.employees.count > 0 %}
+                    <div class="alert alert-warning py-2 px-3 small mb-0">
+                      <i class="bi bi-info-circle me-1"></i><strong>{{ s.employees.count }} employee(s)</strong> are assigned to this shift and will be set to unassigned.
+                    </div>
+                    {% else %}
+                    <p class="text-muted small mb-0">This action cannot be undone.</p>
+                    {% endif %}
+                  </div>
+                  <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancel</button>
+                    <form action="{% url 'employees:shift_delete' s.pk %}" method="post" class="d-inline">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash3 me-1"></i> Confirm Delete
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </td>
+          {% endif %}
         </tr>
         {% empty %}
         <tr>
-          <td colspan="6" class="text-center py-4 text-muted">No shifts defined yet.</td>
+          <td colspan="7" class="text-center py-4 text-muted">No shifts defined yet.</td>
         </tr>
         {% endfor %}
       </tbody>

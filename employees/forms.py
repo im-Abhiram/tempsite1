@@ -65,6 +65,16 @@ class EmployeeForm(forms.ModelForm):
         required=False,
         help_text="Select all weekly off days for this employee.",
     )
+    designation = forms.CharField(
+        max_length=100,
+        widget=forms.TextInput(attrs={
+            "class": "form-control",
+            "placeholder": "Enter designation (e.g. Senior Accountant, Cashier, Supervisor)",
+            "list": "designationsList",
+            "autocomplete": "off",
+        }),
+        help_text="Enter employee designation title.",
+    )
 
     class Meta:
         model = Employee
@@ -81,7 +91,6 @@ class EmployeeForm(forms.ModelForm):
             "emergency_contact_name": forms.TextInput(attrs={"class": "form-control"}),
             "emergency_contact_phone": forms.TextInput(attrs={"class": "form-control", "type": "tel"}),
             "department": forms.Select(attrs={"class": "form-select"}),
-            "designation": forms.Select(attrs={"class": "form-select"}),
             "date_of_joining": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
             "employment_status": forms.Select(attrs={"class": "form-select"}),
             "employment_type": forms.Select(attrs={"class": "form-select"}),
@@ -102,6 +111,14 @@ class EmployeeForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if self.instance.pk and self.instance.weekly_off_days:
             self.initial["weekly_off_days"] = [str(d) for d in self.instance.weekly_off_days]
+        if self.instance.pk and self.instance.designation_id:
+            self.initial["designation"] = self.instance.designation.name
+
+    def clean_designation(self):
+        val = self.cleaned_data.get("designation")
+        if not val or not str(val).strip():
+            raise ValidationError("Designation is required.")
+        return val
 
     def clean_weekly_off_days(self):
         days = self.cleaned_data.get("weekly_off_days", [])
@@ -114,6 +131,40 @@ class EmployeeForm(forms.ModelForm):
             if photo.size > max_size:
                 raise ValidationError("Photo must be smaller than 2 MB.")
         return photo
+
+    def clean(self):
+        cleaned_data = super().clean()
+        dept = cleaned_data.get("department")
+        desig_val = cleaned_data.get("designation")
+        if dept and desig_val:
+            if isinstance(desig_val, Designation):
+                pass
+            elif isinstance(desig_val, int) or (isinstance(desig_val, str) and desig_val.strip().isdigit()):
+                try:
+                    desig_obj = Designation.objects.get(pk=int(desig_val))
+                    cleaned_data["designation"] = desig_obj
+                except Designation.DoesNotExist:
+                    desig_obj, _ = Designation.objects.get_or_create(
+                        name=str(desig_val).strip(), department=dept
+                    )
+                    cleaned_data["designation"] = desig_obj
+            else:
+                desig_name = str(desig_val).strip()
+                desig_obj, _ = Designation.objects.get_or_create(
+                    name=desig_name, department=dept
+                )
+                cleaned_data["designation"] = desig_obj
+        return cleaned_data
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        desig = self.cleaned_data.get("designation")
+        if isinstance(desig, Designation):
+            instance.designation = desig
+        if commit:
+            instance.save()
+            self.save_m2m()
+        return instance
 
 
 # ─── Salary Rate Update Form ─────────────────────────────────────────────────────

@@ -537,53 +537,204 @@ class AttendanceExcelExport(AnyRoleMixin, View):
 
 
 class PayrollExcelExport(AccountantOrSuperadminMixin, View):
+    """
+    Exports a professional, formula-driven Employee Wage Sheet & Pay Slip in Excel.
+    Columns include:
+    - Sl No.
+    - Employee ID
+    - Name
+    - Working Days
+    - Present
+    - Absent
+    - Wage / Base Salary
+    - Overtime Wage / Salary
+    - Net Wage / Salary (automatically calculated via Excel formula)
+    - Remarks (Payment Status, method, notes)
+    """
     def get(self, request, period_pk):
         from openpyxl import Workbook
-        from openpyxl.styles import Font, PatternFill, Alignment
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+        from openpyxl.utils import get_column_letter
 
         period = get_object_or_404(PayrollPeriod, pk=period_pk)
-        statements = PayrollStatement.objects.filter(payroll_period=period).select_related("employee")
+        statements = PayrollStatement.objects.filter(payroll_period=period).select_related(
+            "employee", "employee__department", "employee__designation"
+        )
 
         wb = Workbook()
         ws = wb.active
-        ws.title = f"Payroll {period.start_date}"
+        ws.title = f"Wage Sheet {period.start_date}"
 
-        header_fill = PatternFill("solid", fgColor="1E3A5F")
-        header_font = Font(color="FFFFFF", bold=True)
+        # Ensure grid lines are visible
+        ws.views.sheetView[0].showGridLines = True
 
+        # Styles
+        title_font = Font(name="Calibri", size=14, bold=True, color="FFFFFF")
+        title_fill = PatternFill("solid", fgColor="1E3A5F")  # Navy
+        sub_font = Font(name="Calibri", size=10, italic=True, color="334155")
+        sub_fill = PatternFill("solid", fgColor="F1F5F9")
+
+        header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+        header_fill = PatternFill("solid", fgColor="0F766E")  # Teal
+
+        data_font = Font(name="Calibri", size=10)
+        total_font = Font(name="Calibri", size=11, bold=True, color="0F172A")
+        total_fill = PatternFill("solid", fgColor="E0F2FE")  # Light blue
+
+        thin_border = Border(
+            left=Side(style="thin", color="CBD5E1"),
+            right=Side(style="thin", color="CBD5E1"),
+            top=Side(style="thin", color="CBD5E1"),
+            bottom=Side(style="thin", color="CBD5E1"),
+        )
+        total_border = Border(
+            left=Side(style="thin", color="94A3B8"),
+            right=Side(style="thin", color="94A3B8"),
+            top=Side(style="thin", color="0F766E"),
+            bottom=Side(style="double", color="0F766E"),
+        )
+
+        align_center = Alignment(horizontal="center", vertical="center")
+        align_left = Alignment(horizontal="left", vertical="center")
+        align_right = Alignment(horizontal="right", vertical="center")
+
+        # Row 1: Title Banner
+        ws.merge_cells("A1:J1")
+        title_cell = ws["A1"]
+        title_cell.value = "THAMARAYYATH — EMPLOYEE WAGE SHEET & PAY SLIP"
+        title_cell.font = title_font
+        title_cell.fill = title_fill
+        title_cell.alignment = align_center
+        ws.row_dimensions[1].height = 32
+
+        # Row 2: Subtitle Period Info
+        ws.merge_cells("A2:J2")
+        sub_cell = ws["A2"]
+        sub_cell.value = (
+            f"Pay Cycle: {period.get_cycle_type_display()} | "
+            f"Period: {period.start_date:%d-%b-%Y} to {period.end_date:%d-%b-%Y} "
+            f"({period.duration_days} Days) | Status: {period.status}"
+        )
+        sub_cell.font = sub_font
+        sub_cell.fill = sub_fill
+        sub_cell.alignment = align_center
+        ws.row_dimensions[2].height = 20
+
+        # Row 3: Blank separator
+        ws.row_dimensions[3].height = 10
+
+        # Row 4: Column Headers
         headers = [
-            "Employee ID", "Name", "Salary Method", "Period Start", "Period End",
-            "Worked Hours", "Regular Hours", "OT Hours", "Payable Days",
-            "Base Pay (₹)", "OT Pay (₹)", "Allowances (₹)", "Bonuses (₹)", "Deductions (₹)",
-            "Gross Pay (₹)", "Net Pay (₹)", "Status",
+            ("Sl No.", align_center),
+            ("Employee ID", align_center),
+            ("Name", align_left),
+            ("Working Days", align_center),
+            ("Present", align_center),
+            ("Absent", align_center),
+            ("Wage / Base Salary (₹)", align_right),
+            ("Overtime Wage / Salary (₹)", align_right),
+            ("Net Wage / Salary (₹)", align_right),
+            ("Remarks", align_left),
         ]
-        for col, h in enumerate(headers, 1):
-            cell = ws.cell(row=1, column=col, value=h)
-            cell.fill = header_fill
+        ws.row_dimensions[4].height = 26
+        for col_idx, (header_text, alignment) in enumerate(headers, 1):
+            cell = ws.cell(row=4, column=col_idx, value=header_text)
             cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = alignment
+            cell.border = thin_border
 
-        for row_idx, stmt in enumerate(statements, 2):
-            row = [
-                SAFE_STR(stmt.employee.employee_id),
-                SAFE_STR(stmt.employee.full_name),
-                SAFE_STR(stmt.salary_method),
-                str(period.start_date),
-                str(period.end_date),
-                float(stmt.worked_hours or 0),
-                float(stmt.regular_hours or 0),
-                float(stmt.overtime_hours or 0),
-                float(stmt.payable_days or 0),
-                float(stmt.base_pay or 0),
-                float(stmt.overtime_pay or 0),
-                float(stmt.total_allowances or 0),
-                float(stmt.total_bonuses or 0),
-                float(stmt.total_deductions or 0),
-                float(stmt.gross_pay or 0),
-                float(stmt.net_pay or 0),
-                SAFE_STR(stmt.status),
+        # Rows 5+: Data
+        start_row = 5
+        duration = float(period.duration_days)
+
+        for i, stmt in enumerate(statements):
+            curr_row = start_row + i
+            ws.row_dimensions[curr_row].height = 22
+
+            # Remarks logic
+            if stmt.is_paid:
+                pay_text = f"PAID ({stmt.get_payment_method_display()})"
+                if stmt.payment_remarks:
+                    pay_text += f" - {stmt.payment_remarks}"
+            else:
+                pay_text = "UNPAID"
+                if stmt.payment_remarks:
+                    pay_text += f" - {stmt.payment_remarks}"
+
+            base_val = float(stmt.base_pay or 0)
+            ot_val = float(stmt.overtime_pay or 0)
+            diff = float((stmt.total_allowances or 0) + (stmt.total_bonuses or 0) - (stmt.total_deductions or 0))
+
+            # Auto calculation formula for Net Wage (Column I = Col G + Col H [+ diff])
+            if abs(diff) > 0.001:
+                net_formula = f"=G{curr_row}+H{curr_row}+{diff:.2f}"
+            else:
+                net_formula = f"=G{curr_row}+H{curr_row}"
+
+            row_data = [
+                (i + 1, align_center, "0"),
+                (SAFE_STR(stmt.employee.employee_id), align_center, None),
+                (SAFE_STR(stmt.employee.full_name), align_left, None),
+                (duration, align_center, "0.0"),
+                (float(stmt.payable_days or 0), align_center, "0.0"),
+                (float(stmt.absent_days or 0), align_center, "0.0"),
+                (base_val, align_right, "#,##0.00"),
+                (ot_val, align_right, "#,##0.00"),
+                (net_formula, align_right, "#,##0.00"),
+                (SAFE_STR(pay_text), align_left, None),
             ]
-            for col, val in enumerate(row, 1):
-                ws.cell(row=row_idx, column=col, value=val)
+
+            is_even = (i % 2 == 0)
+            row_fill = PatternFill("solid", fgColor="FFFFFF" if is_even else "F8FAFC")
+
+            for col_idx, (val, alignment, num_fmt) in enumerate(row_data, 1):
+                cell = ws.cell(row=curr_row, column=col_idx, value=val)
+                cell.font = data_font
+                cell.fill = row_fill
+                cell.alignment = alignment
+                cell.border = thin_border
+                if num_fmt:
+                    cell.number_format = num_fmt
+
+        last_data_row = start_row + len(statements) - 1
+        total_row = last_data_row + 1
+
+        if len(statements) > 0:
+            ws.row_dimensions[total_row].height = 25
+            total_data = [
+                ("", align_center, None),
+                ("", align_center, None),
+                ("TOTAL", align_left, None),
+                (f"=SUM(D{start_row}:D{last_data_row})", align_center, "0.0"),
+                (f"=SUM(E{start_row}:E{last_data_row})", align_center, "0.0"),
+                (f"=SUM(F{start_row}:F{last_data_row})", align_center, "0.0"),
+                (f"=SUM(G{start_row}:G{last_data_row})", align_right, "#,##0.00"),
+                (f"=SUM(H{start_row}:H{last_data_row})", align_right, "#,##0.00"),
+                (f"=SUM(I{start_row}:I{last_data_row})", align_right, "#,##0.00"),
+                (f"{period.total_paid_count} Paid, {period.total_unpaid_count} Unpaid", align_left, None),
+            ]
+            for col_idx, (val, alignment, num_fmt) in enumerate(total_data, 1):
+                cell = ws.cell(row=total_row, column=col_idx, value=val)
+                cell.font = total_font
+                cell.fill = total_fill
+                cell.alignment = alignment
+                cell.border = total_border
+                if num_fmt:
+                    cell.number_format = num_fmt
+
+        # Auto-adjust column widths
+        for col in ws.columns:
+            max_len = 0
+            col_letter = get_column_letter(col[0].column)
+            for cell in col:
+                if cell.row in (1, 2):
+                    continue
+                val_str = str(cell.value or "")
+                if val_str.startswith("="):
+                    val_str = "123,456.78"
+                max_len = max(max_len, len(val_str))
+            ws.column_dimensions[col_letter].width = max(max_len + 5, 12)
 
         buffer = io.BytesIO()
         wb.save(buffer)
@@ -593,10 +744,152 @@ class PayrollExcelExport(AccountantOrSuperadminMixin, View):
             actor=request.user, action="REPORT_EXPORT",
             target_model="PayrollPeriod", target_id=str(period.pk),
             ip_address=request.META.get("REMOTE_ADDR"),
-            extra={"format": "excel", "report": "payroll"},
+            extra={"format": "excel", "report": "payroll_wage_sheet"},
         )
 
-        filename = f"payroll_{period.start_date}_{period.end_date}.xlsx"
+        filename = f"wage_sheet_{period.start_date}_{period.end_date}.xlsx"
+        response = HttpResponse(
+            buffer.read(),
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        return response
+
+
+class StatementExcelExport(AccountantOrSuperadminMixin, View):
+    """
+    Exports a single employee's detailed pay slip in Excel format.
+    """
+    def get(self, request, statement_pk):
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+
+        stmt = get_object_or_404(
+            PayrollStatement.objects.select_related(
+                "employee", "payroll_period", "employee__department", "employee__designation"
+            ),
+            pk=statement_pk,
+        )
+        period = stmt.payroll_period
+        emp = stmt.employee
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = f"Payslip {emp.employee_id}"
+        ws.views.sheetView[0].showGridLines = True
+
+        title_font = Font(name="Calibri", size=14, bold=True, color="FFFFFF")
+        title_fill = PatternFill("solid", fgColor="1E3A5F")
+        section_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+        section_fill = PatternFill("solid", fgColor="0F766E")
+        label_font = Font(name="Calibri", size=10, bold=True, color="334155")
+        val_font = Font(name="Calibri", size=10)
+        total_font = Font(name="Calibri", size=11, bold=True, color="0F172A")
+        total_fill = PatternFill("solid", fgColor="E0F2FE")
+
+        thin_border = Border(
+            left=Side(style="thin", color="CBD5E1"),
+            right=Side(style="thin", color="CBD5E1"),
+            top=Side(style="thin", color="CBD5E1"),
+            bottom=Side(style="thin", color="CBD5E1"),
+        )
+
+        align_center = Alignment(horizontal="center", vertical="center")
+        align_left = Alignment(horizontal="left", vertical="center")
+        align_right = Alignment(horizontal="right", vertical="center")
+
+        ws.merge_cells("A1:D1")
+        t = ws["A1"]
+        t.value = "THAMARAYYATH EMPLOYEE PORTAL — PAYSLIP"
+        t.font = title_font
+        t.fill = title_fill
+        t.alignment = align_center
+        ws.row_dimensions[1].height = 30
+
+        info_rows = [
+            ("Employee Name:", emp.full_name, "Employee ID:", emp.employee_id),
+            ("Department:", emp.department.name, "Designation:", emp.designation.name),
+            ("Pay Cycle:", period.get_cycle_type_display(), "Period Dates:", f"{period.start_date:%d-%b-%Y} to {period.end_date:%d-%b-%Y}"),
+            ("Working Days:", period.duration_days, "Present Days:", float(stmt.payable_days or 0)),
+            ("Absent Days:", float(stmt.absent_days or 0), "Salary Method:", stmt.salary_method),
+            ("Payment Status:", "PAID" if stmt.is_paid else "UNPAID", "Payment Remarks:", stmt.payment_remarks or "None"),
+        ]
+
+        curr = 3
+        for r in info_rows:
+            ws.cell(row=curr, column=1, value=r[0]).font = label_font
+            ws.cell(row=curr, column=2, value=str(r[1])).font = val_font
+            ws.cell(row=curr, column=3, value=r[2]).font = label_font
+            ws.cell(row=curr, column=4, value=str(r[3])).font = val_font
+            for c in range(1, 5):
+                ws.cell(row=curr, column=c).border = thin_border
+            ws.row_dimensions[curr].height = 20
+            curr += 1
+
+        curr += 1
+        ws.merge_cells(f"A{curr}:B{curr}")
+        ws.merge_cells(f"C{curr}:D{curr}")
+        ws.cell(row=curr, column=1, value="Earnings Component").font = section_font
+        ws.cell(row=curr, column=1).fill = section_fill
+        ws.cell(row=curr, column=1).alignment = align_left
+        ws.cell(row=curr, column=3, value="Amount (₹)").font = section_font
+        ws.cell(row=curr, column=3).fill = section_fill
+        ws.cell(row=curr, column=3).alignment = align_right
+        ws.row_dimensions[curr].height = 24
+        curr += 1
+
+        earnings_start = curr
+        earnings = [
+            ("Wage / Base Salary", float(stmt.base_pay or 0)),
+            ("Overtime Wage / Salary", float(stmt.overtime_pay or 0)),
+        ]
+        if stmt.total_allowances:
+            earnings.append(("Allowances", float(stmt.total_allowances)))
+        if stmt.total_bonuses:
+            earnings.append(("Bonuses", float(stmt.total_bonuses)))
+        if stmt.total_deductions:
+            earnings.append(("Deductions", -float(stmt.total_deductions)))
+
+        for item_name, amount in earnings:
+            ws.merge_cells(f"A{curr}:B{curr}")
+            ws.merge_cells(f"C{curr}:D{curr}")
+            c1 = ws.cell(row=curr, column=1, value=item_name)
+            c1.font = val_font
+            c1.alignment = align_left
+            c2 = ws.cell(row=curr, column=3, value=amount)
+            c2.font = val_font
+            c2.alignment = align_right
+            c2.number_format = "#,##0.00"
+            for c in range(1, 5):
+                ws.cell(row=curr, column=c).border = thin_border
+            ws.row_dimensions[curr].height = 20
+            curr += 1
+
+        earnings_end = curr - 1
+        ws.merge_cells(f"A{curr}:B{curr}")
+        ws.merge_cells(f"C{curr}:D{curr}")
+        tot_c1 = ws.cell(row=curr, column=1, value="NET WAGE / SALARY PAYABLE")
+        tot_c1.font = total_font
+        tot_c1.fill = total_fill
+        tot_c2 = ws.cell(row=curr, column=3, value=f"=SUM(C{earnings_start}:C{earnings_end})")
+        tot_c2.font = total_font
+        tot_c2.fill = total_fill
+        tot_c2.alignment = align_right
+        tot_c2.number_format = "₹#,##0.00"
+        for c in range(1, 5):
+            ws.cell(row=curr, column=c).border = thin_border
+        ws.row_dimensions[curr].height = 25
+
+        ws.column_dimensions["A"].width = 22
+        ws.column_dimensions["B"].width = 28
+        ws.column_dimensions["C"].width = 20
+        ws.column_dimensions["D"].width = 28
+
+        buffer = io.BytesIO()
+        wb.save(buffer)
+        buffer.seek(0)
+
+        filename = f"payslip_{emp.employee_id}_{period.start_date}.xlsx"
         response = HttpResponse(
             buffer.read(),
             content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

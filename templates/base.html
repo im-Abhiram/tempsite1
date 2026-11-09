@@ -121,6 +121,10 @@
         <span class="nav-icon"><i class="bi bi-calculator"></i></span>
         <span>Generate Payroll</span>
       </a>
+      <a href="{% url 'payroll:payment_dashboard' %}" class="nav-link {% if 'payment' in request.resolver_match.url_name %}active{% endif %}">
+        <span class="nav-icon"><i class="bi bi-wallet2"></i></span>
+        <span>Wage Payments</span>
+      </a>
       {% endif %}
 
       <!-- Section: Reports -->
@@ -182,12 +186,6 @@
       </div>
 
       <div class="topbar-actions">
-        <!-- LAN Environment Indicator -->
-        <span class="badge rounded-pill bg-light text-dark border px-3 py-2 d-none d-lg-inline-flex align-items-center gap-2" style="font-size: 11px; font-weight: 500;">
-          <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background-color:#10B981; animation: pulse 2s infinite;"></span>
-          LAN Protected Mode
-        </span>
-
         <!-- Quick Action Buttons based on Role -->
         {% if not is_owner %}
         <div class="dropdown">
@@ -262,7 +260,7 @@
     <footer class="mt-auto py-3 px-4 bg-white border-top text-center text-muted" style="font-size: 12px;">
       <div class="d-flex flex-wrap justify-content-between align-items-center">
         <div>
-          &copy; {% now "Y" %} <strong>{{ COMPANY_NAME }}</strong>. All rights reserved. &bull; <span class="badge bg-light text-muted border">Local Workstation Deployment</span>
+          &copy; {% now "Y" %} <strong>{{ COMPANY_NAME }}</strong>. All rights reserved.
         </div>
         <div>
           <span>Role: <strong class="text-teal">{{ request.user.get_role_display }}</strong></span> &bull;

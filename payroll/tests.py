@@ -271,4 +271,80 @@ class PayrollEngineTests(TestCase):
         fin_res = self.client.post(reverse("payroll:finalize", kwargs={"pk": period.pk}))
         self.assertEqual(fin_res.status_code, 403)
 
+    def test_wage_disbursement_tracking_and_marking_paid(self):
+        """Verify wage disbursement page, individual and bulk payment marking, and toggling."""
+        period = generate_payroll_period(
+            cycle_type=PayrollCycle.WEEKLY,
+            start_date=datetime.date(2026, 6, 1),
+            end_date=datetime.date(2026, 6, 7),
+            requested_by=self.accountant,
+        )
+        self.client.force_login(self.accountant)
+
+        # 1. View payment tracking page
+        res = self.client.get(reverse("payroll:period_payments", kwargs={"period_pk": period.pk}))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Wage Disbursement Tracking")
+        self.assertEqual(period.total_unpaid_count, period.statements.count())
+
+        # 2. Mark one statement as paid
+        stmt = period.statements.first()
+        toggle_res = self.client.post(reverse("payroll:toggle_payment", kwargs={"pk": stmt.pk}), {
+            "action": "mark_paid",
+            "payment_method": "BANK_TRANSFER",
+            "payment_remarks": "NEFT Ref #992812",
+        })
+        self.assertEqual(toggle_res.status_code, 302)
+        stmt.refresh_from_db()
+        self.assertTrue(stmt.is_paid)
+        self.assertEqual(stmt.payment_method, "BANK_TRANSFER")
+        self.assertEqual(stmt.payment_remarks, "NEFT Ref #992812")
+        self.assertIsNotNone(stmt.paid_at)
+
+        # 3. Bulk mark all remaining as paid
+        bulk_res = self.client.post(reverse("payroll:bulk_mark_paid", kwargs={"period_pk": period.pk}), {
+            "payment_method": "CASH",
+            "payment_remarks": "Office Cash Handover",
+        })
+        self.assertEqual(bulk_res.status_code, 302)
+        self.assertEqual(period.total_unpaid_count, 0)
+        self.assertEqual(period.total_paid_count, period.statements.count())
+
+        # 4. Toggle back to unpaid
+        unmark_res = self.client.post(reverse("payroll:toggle_payment", kwargs={"pk": stmt.pk}), {
+            "action": "mark_unpaid",
+        })
+        self.assertEqual(unmark_res.status_code, 302)
+        stmt.refresh_from_db()
+        self.assertFalse(stmt.is_paid)
+
+    def test_excel_wage_sheet_and_payslip_export(self):
+        """Verify generation of Excel wage sheet with formula calculations and individual payslip."""
+        period = generate_payroll_period(
+            cycle_type=PayrollCycle.WEEKLY,
+            start_date=datetime.date(2026, 7, 1),
+            end_date=datetime.date(2026, 7, 7),
+            requested_by=self.accountant,
+        )
+        self.client.force_login(self.accountant)
+
+        # Excel Wage Sheet
+        res_excel = self.client.get(reverse("reports:payroll_excel", kwargs={"period_pk": period.pk}))
+        self.assertEqual(res_excel.status_code, 200)
+        self.assertEqual(
+            res_excel["Content-Type"],
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        self.assertIn("wage_sheet_", res_excel["Content-Disposition"])
+
+        # Individual Payslip Excel
+        stmt = period.statements.first()
+        res_single = self.client.get(reverse("reports:statement_excel", kwargs={"statement_pk": stmt.pk}))
+        self.assertEqual(res_single.status_code, 200)
+        self.assertEqual(
+            res_single["Content-Type"],
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        self.assertIn("payslip_", res_single["Content-Disposition"])
+
 

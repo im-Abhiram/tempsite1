@@ -28,4 +28,5 @@ urlpatterns = [
     path("attendance/excel/", views.AttendanceExcelExport.as_view(), name="attendance_excel"),
     path("payroll/<int:period_pk>/excel/", views.PayrollExcelExport.as_view(), name="payroll_excel"),
     path("payroll/<int:period_pk>/pdf/", views.PayrollPDFExport.as_view(), name="payroll_pdf"),
+    path("statement/<int:statement_pk>/excel/", views.StatementExcelExport.as_view(), name="statement_excel"),
 ]

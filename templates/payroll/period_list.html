@@ -93,11 +93,16 @@
                   </a>
                 {% endif %}
               {% endif %}
+              {% if not is_owner %}
+                <a href="{% url 'payroll:period_payments' period.pk %}" class="btn btn-outline-primary" title="Wage Payments & Disbursements">
+                  <i class="bi bi-cash-coin"></i>
+                </a>
+              {% endif %}
               {% if period.status == 'FINALIZED' %}
                 <a href="{% url 'reports:payroll_pdf' period.pk %}" class="btn btn-outline-danger" title="Download PDF Report">
                   <i class="bi bi-file-earmark-pdf"></i>
                 </a>
-                <a href="{% url 'reports:payroll_excel' period.pk %}" class="btn btn-outline-success" title="Download Excel">
+                <a href="{% url 'reports:payroll_excel' period.pk %}" class="btn btn-outline-success" title="Download Excel Wage Sheet">
                   <i class="bi bi-file-earmark-excel"></i>
                 </a>
               {% endif %}
