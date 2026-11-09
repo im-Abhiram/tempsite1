@@ -246,12 +246,81 @@ If you encounter any unexpected error, check the live logs on the Web tab:
 - **Error log**: `/var/log/thamara.pythonanywhere.com.error.log`
 - **Server log**: `/var/log/thamara.pythonanywhere.com.server.log`
 
-### 4. Deploying Updates from GitHub
-Whenever you make changes and push to GitHub, update PythonAnywhere in your Bash Console:
+## How to Safely Update the Portal on PythonAnywhere (Without Losing Any Data)
+
+When you make updates to the code on your computer and push them to GitHub, follow this guide to update your live PythonAnywhere site.
+
+### Why Your Data is 100% Safe:
+1. **Database (`db.sqlite3`) is untracked by Git**: Your SQLite database is explicitly excluded via `.gitignore`. Running `git pull` will **never** overwrite, delete, or reset your existing employee records, attendance punches, or user accounts.
+2. **Uploaded Files (`media/`) are untracked by Git**: All employee photos and vault documents are stored locally in `media/` and are never touched by Git.
+3. **Environment Settings (`.env`) are untracked by Git**: Your production secret key and passwords remain untouched.
+4. **Django Migrations Preserve Data**: Running `python manage.py migrate` only adds new tables or columns (such as the new `is_paid` wage status columns) to your existing database. It does not drop existing records.
+
+---
+
+### Step-by-Step Safe Update Procedure:
+
+Open a **Bash Console** on PythonAnywhere and run the following steps:
+
+#### Step 1: Create a Safety Snapshot of Your Database
+Before pulling updates or applying database migrations, make a quick local backup:
 ```bash
 cd /home/thamara/thamarayyath
+cp db.sqlite3 db.sqlite3.bak_$(date +%Y%m%d_%H%M%S)
+```
+*(This creates an instant timestamped copy like `db.sqlite3.bak_20261109_163000` in your folder. If you ever need to restore, just copy it back).*
+
+> **Tip:** You can also download a copy of your `.sqlite3` file anytime directly from your browser by logging into the portal as Superadmin and visiting `/core/backup/`.
+
+#### Step 2: Activate Your Virtual Environment
+```bash
+workon portal-env
+cd /home/thamara/thamarayyath
+```
+
+#### Step 3: Pull Latest Code from GitHub
+```bash
 git pull origin main
+```
+
+> **Troubleshooting Git Conflicts:**
+> If Git says *"error: Your local changes to the following files would be overwritten by merge"*, someone edited code files directly on PythonAnywhere. To safely discard those edits and pull clean GitHub code (without touching your database or media):
+> ```bash
+> git stash
+> git pull origin main
+> ```
+
+#### Step 4: Update Any New Python Packages
+```bash
+pip install -r requirements.txt
+```
+
+#### Step 5: Apply Database Migrations
+```bash
 python manage.py migrate
+```
+This safely applies newly added schema migrations (such as wage disbursement tracking fields) while keeping all existing employees, shifts, attendance punches, and salary data completely intact.
+
+#### Step 6: Collect New Static Files (CSS, JS, Icons)
+```bash
 python manage.py collectstatic --noinput
 ```
-Then click **Reload thamara.pythonanywhere.com** on the Web tab.
+
+#### Step 7: Reload the Web App
+Go to the **Web** tab in PythonAnywhere and click the green button:
+**Reload thamara.pythonanywhere.com**
+
+*(Or reload directly from the Bash console by running)*:
+```bash
+touch /var/www/thamara_pythonanywhere_com_wsgi.py
+```
+
+---
+
+### Quick 1-Step Fast Update Command
+Once you are familiar with the process, you can copy-paste this single line into your PythonAnywhere Bash Console to run the entire safe update automatically:
+
+```bash
+cd /home/thamara/thamarayyath && workon portal-env && cp db.sqlite3 db.sqlite3.bak_$(date +%Y%m%d_%H%M%S) && git pull origin main && pip install -r requirements.txt && python manage.py migrate && python manage.py collectstatic --noinput && touch /var/www/thamara_pythonanywhere_com_wsgi.py
+```
+This single command safely creates a backup, pulls latest code, updates packages, migrates the database, collects static files, and reloads your live website!
