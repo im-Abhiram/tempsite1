@@ -608,10 +608,11 @@ class PayrollExcelExport(AccountantOrSuperadminMixin, View):
         ws.row_dimensions[1].height = 32
 
         # Row 2: Subtitle Period Info
+        dept_name = period.department.name if period.department else "All Departments"
         ws.merge_cells("A2:J2")
         sub_cell = ws["A2"]
         sub_cell.value = (
-            f"Pay Cycle: {period.get_cycle_type_display()} | "
+            f"Pay Cycle: {period.get_cycle_type_display()} | Department: {dept_name} | "
             f"Period: {period.start_date:%d-%b-%Y} to {period.end_date:%d-%b-%Y} "
             f"({period.duration_days} Days) | Status: {period.status}"
         )
@@ -915,8 +916,9 @@ class PayrollPDFExport(AccountantOrSuperadminMixin, View):
 
         elements = []
         title_style = ParagraphStyle("Title", parent=styles["Heading1"], fontSize=16, textColor=colors.HexColor("#1E3A5F"))
+        dept_name = period.department.name if period.department else "All Departments"
         elements.append(Paragraph(f"{settings_obj.company_name} — Payroll Report", title_style))
-        elements.append(Paragraph(f"Period: {period.start_date} to {period.end_date} | Cycle: {period.get_cycle_type_display()}", styles["Normal"]))
+        elements.append(Paragraph(f"Period: {period.start_date} to {period.end_date} | Cycle: {period.get_cycle_type_display()} | Department: {dept_name}", styles["Normal"]))
         elements.append(Spacer(1, 12))
 
         table_data = [["Emp ID", "Name", "Method", "Worked Hrs", "OT Hrs", "Base Pay", "OT Pay", "Allowances", "Bonuses", "Deductions", "Gross", "Net", "Status"]]

@@ -13,6 +13,15 @@
       <span class="badge bg-light text-navy border px-2 py-1 font-monospace" style="font-size: 11px;">
         {{ period.get_cycle_type_display }}
       </span>
+      {% if period.department %}
+        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1" style="font-size: 11px;">
+          <i class="bi bi-building me-1"></i>{{ period.department.name }}
+        </span>
+      {% else %}
+        <span class="badge bg-light text-muted border px-2 py-1" style="font-size: 11px;">
+          <i class="bi bi-globe me-1"></i>All Departments
+        </span>
+      {% endif %}
       {% if period.status == "FINALIZED" %}
         <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" style="font-size: 11px;">Finalized</span>
       {% elif period.status == "REVIEWED" %}

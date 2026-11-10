@@ -19,7 +19,7 @@ from django.utils import timezone
 
 from accounts.models import CompanySettings
 from attendance.models import AttendanceRecord, AttendanceStatus
-from employees.models import Employee, SalaryRateHistory, SalaryMethod
+from employees.models import Employee, Department, SalaryRateHistory, SalaryMethod
 from .models import PayrollPeriod, PayrollStatement, PayrollLineItem, PayrollStatus
 
 logger = logging.getLogger("portal")
@@ -320,9 +320,11 @@ def generate_payroll_period(
     end_date: datetime.date,
     requested_by,
     notes: str = "",
+    department: Optional[Department] = None,
 ) -> PayrollPeriod:
     """
-    Generate payroll statements for all active employees for the specified period.
+    Generate payroll statements for active employees (optionally filtered by department)
+    for the specified period.
     Wrapped in a database transaction — all or nothing.
     """
     settings_obj = CompanySettings.get()
@@ -332,14 +334,22 @@ def generate_payroll_period(
         cycle_type=cycle_type,
         start_date=start_date,
         end_date=end_date,
+        department=department,
         generated_by=requested_by,
         notes=notes,
     )
     period.validate_no_overlap()
     period.save()
 
-    # Only include active employees
+    # Filter active employees (all or specific department)
     employees = Employee.objects.filter(employment_status="ACTIVE")
+    if department:
+        employees = employees.filter(department=department)
+
+    if not employees.exists():
+        dept_label = department.name if department else "the company"
+        raise ValueError(f"No active employees found in {dept_label} to generate payroll for.")
+
     errors = []
 
     for employee in employees:

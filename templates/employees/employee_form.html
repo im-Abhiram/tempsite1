@@ -70,22 +70,22 @@
               {% if form.phone.errors %}<div class="text-danger small mt-1">{% for e in form.phone.errors %}{{ e }}{% endfor %}</div>{% endif %}
             </div>
             <div class="col-md-6">
-              <label for="id_email" class="form-label fw-semibold" style="font-size: 13px;">Email Address</label>
+              <label for="id_email" class="form-label fw-semibold" style="font-size: 13px;">Email Address <span class="text-muted fw-normal">(optional)</span></label>
               {{ form.email }}
               {% if form.email.errors %}<div class="text-danger small mt-1">{% for e in form.email.errors %}{{ e }}{% endfor %}</div>{% endif %}
             </div>
             <div class="col-md-12">
-              <label for="id_residential_address" class="form-label fw-semibold" style="font-size: 13px;">Residential Address</label>
+              <label for="id_residential_address" class="form-label fw-semibold" style="font-size: 13px;">Residential Address *</label>
               {{ form.residential_address }}
               {% if form.residential_address.errors %}<div class="text-danger small mt-1">{% for e in form.residential_address.errors %}{{ e }}{% endfor %}</div>{% endif %}
             </div>
             <div class="col-md-6">
-              <label for="id_emergency_contact_name" class="form-label fw-semibold" style="font-size: 13px;">Emergency Contact Name</label>
+              <label for="id_emergency_contact_name" class="form-label fw-semibold" style="font-size: 13px;">Emergency Contact Name <span class="text-muted fw-normal">(optional)</span></label>
               {{ form.emergency_contact_name }}
               {% if form.emergency_contact_name.errors %}<div class="text-danger small mt-1">{% for e in form.emergency_contact_name.errors %}{{ e }}{% endfor %}</div>{% endif %}
             </div>
             <div class="col-md-6">
-              <label for="id_emergency_contact_phone" class="form-label fw-semibold" style="font-size: 13px;">Emergency Contact Phone</label>
+              <label for="id_emergency_contact_phone" class="form-label fw-semibold" style="font-size: 13px;">Emergency Contact Phone <span class="text-muted fw-normal">(optional)</span></label>
               {{ form.emergency_contact_phone }}
               {% if form.emergency_contact_phone.errors %}<div class="text-danger small mt-1">{% for e in form.emergency_contact_phone.errors %}{{ e }}{% endfor %}</div>{% endif %}
             </div>

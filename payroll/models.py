@@ -36,6 +36,14 @@ class PayrollPeriod(models.Model):
     cycle_type = models.CharField(max_length=20, choices=PayrollCycle.choices)
     start_date = models.DateField(db_index=True)
     end_date = models.DateField(db_index=True)
+    department = models.ForeignKey(
+        "employees.Department",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="payroll_periods",
+        help_text="Specific department or blank for all departments in organization.",
+    )
     status = models.CharField(
         max_length=20, choices=PayrollStatus.choices, default=PayrollStatus.DRAFT, db_index=True
     )
@@ -62,14 +70,15 @@ class PayrollPeriod(models.Model):
     notes = models.TextField(blank=True)
 
     class Meta:
-        unique_together = [("cycle_type", "start_date", "end_date")]
+        unique_together = [("cycle_type", "start_date", "end_date", "department")]
         ordering = ["-start_date"]
         indexes = [
             models.Index(fields=["status", "start_date"]),
         ]
 
     def __str__(self):
-        return f"{self.get_cycle_type_display()} | {self.start_date} – {self.end_date} [{self.status}]"
+        dept_str = f" ({self.department.name})" if self.department else " (All Departments)"
+        return f"{self.get_cycle_type_display()} | {self.start_date} – {self.end_date}{dept_str} [{self.status}]"
 
     @property
     def duration_days(self):
@@ -137,16 +146,24 @@ class PayrollPeriod(models.Model):
         return self.generated_by
 
     def validate_no_overlap(self):
-        """Prevent overlapping payroll periods of the same cycle type."""
-        overlapping = PayrollPeriod.objects.filter(
+        """Prevent overlapping payroll periods of the same cycle type for the same department or all departments."""
+        qs = PayrollPeriod.objects.filter(
             cycle_type=self.cycle_type,
             start_date__lte=self.end_date,
             end_date__gte=self.start_date,
-        ).exclude(pk=self.pk)
+        ).exclude(status=PayrollStatus.REVERSED).exclude(pk=self.pk)
+
+        if self.department:
+            overlapping = qs.filter(models.Q(department=self.department) | models.Q(department__isnull=True))
+        else:
+            overlapping = qs
+
         if overlapping.exists():
+            dup = overlapping.first()
+            dept_name = dup.department.name if dup.department else "All Departments"
             raise ValueError(
                 f"Payroll period {self.start_date}–{self.end_date} overlaps with "
-                f"an existing {self.cycle_type} period."
+                f"an existing {self.cycle_type} period ({dept_name})."
             )
 
 

@@ -14,6 +14,15 @@
           <h3 class="mb-0 fw-bold text-navy" style="font-size: 20px;">
             {{ period.get_cycle_type_display }} Payroll ({{ period.start_date|date:"d M Y" }} – {{ period.end_date|date:"d M Y" }})
           </h3>
+          {% if period.department %}
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">
+              <i class="bi bi-building me-1"></i>{{ period.department.name }}
+            </span>
+          {% else %}
+            <span class="badge bg-light text-muted border px-2 py-1">
+              <i class="bi bi-globe me-1"></i>All Departments
+            </span>
+          {% endif %}
           {% if period.status == 'DRAFT' %}
             <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1">Draft</span>
           {% elif period.status == 'REVIEWED' %}

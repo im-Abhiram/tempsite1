@@ -352,12 +352,21 @@ class DocumentUploadView(AccountantOrSuperadminMixin, View):
         form = DocumentUploadForm(request.POST, request.FILES)
         if form.is_valid():
             uploaded_file = form.cleaned_data["file"]
+            # Compress uploaded document (scanned photos, ID cards, certificates)
+            from core.compression import compress_uploaded_document
+            uploaded_file = compress_uploaded_document(uploaded_file, max_dimension=1600, quality=75)
+
             detected_mime = getattr(uploaded_file, "_detected_mime", "")
+            if not detected_mime:
+                import mimetypes
+                detected_mime = mimetypes.guess_type(uploaded_file.name)[0] or "application/octet-stream"
+
             with transaction.atomic():
                 doc = form.save(commit=False)
                 doc.employee = employee
-                doc.original_filename = uploaded_file.name
-                doc.file_size = uploaded_file.size
+                doc.file = uploaded_file
+                doc.original_filename = getattr(uploaded_file, "name", "document")
+                doc.file_size = getattr(uploaded_file, "size", 0)
                 doc.detected_content_type = detected_mime
                 doc.uploaded_by = request.user
                 # Redirect file storage to private vault
@@ -367,9 +376,9 @@ class DocumentUploadView(AccountantOrSuperadminMixin, View):
                     actor=request.user, action="DOCUMENT_UPLOAD",
                     target_model="EmployeeDocument", target_id=str(doc.pk),
                     ip_address=request.META.get("REMOTE_ADDR"),
-                    extra={"employee_id": employee.employee_id, "doc_title": doc.title},
+                    extra={"employee_id": employee.employee_id, "doc_title": doc.title, "file_size": doc.file_size},
                 )
-            messages.success(request, f"Document '{doc.title}' uploaded.")
+            messages.success(request, f"Document '{doc.title}' uploaded successfully ({doc.file_size_display}).")
             return redirect("employees:employee_detail", pk=employee.pk)
         return render(request, self.template_name, {"employee": employee, "form": form})
 

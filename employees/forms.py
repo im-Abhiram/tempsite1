@@ -75,6 +75,18 @@ class EmployeeForm(forms.ModelForm):
         }),
         help_text="Enter employee designation title.",
     )
+    email = forms.EmailField(
+        required=False,
+        widget=forms.EmailInput(attrs={"class": "form-control", "placeholder": "name@example.com (optional)"}),
+    )
+    emergency_contact_name = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Emergency contact name (optional)"}),
+    )
+    emergency_contact_phone = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={"class": "form-control", "type": "tel", "placeholder": "Phone number (optional)"}),
+    )
 
     class Meta:
         model = Employee
@@ -126,10 +138,9 @@ class EmployeeForm(forms.ModelForm):
 
     def clean_photo(self):
         photo = self.cleaned_data.get("photo")
-        if photo and hasattr(photo, "size"):
-            max_size = 2 * 1024 * 1024  # 2 MB for photos
-            if photo.size > max_size:
-                raise ValidationError("Photo must be smaller than 2 MB.")
+        if photo:
+            from core.compression import compress_profile_photo
+            photo = compress_profile_photo(photo, max_dimension=800, quality=80)
         return photo
 
     def clean(self):

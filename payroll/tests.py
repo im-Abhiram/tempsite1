@@ -347,4 +347,61 @@ class PayrollEngineTests(TestCase):
         )
         self.assertIn("payslip_", res_single["Content-Disposition"])
 
+    def test_generate_payroll_department_scope(self):
+        """Verify payroll generation can target a specific department or all departments."""
+        dept2 = Department.objects.create(name="Logistics", code="LOG")
+        desig2 = Designation.objects.create(name="Driver", department=dept2)
+        emp_logistics = Employee.objects.create(
+            employee_id="EMP-0299",
+            first_name="Ramesh",
+            last_name="K",
+            phone="9876543299",
+            department=dept2,
+            designation=desig2,
+            assigned_shift=self.shift,
+            date_of_joining=datetime.date(2025, 1, 1),
+            employment_status=EmploymentStatus.ACTIVE,
+            employment_type=EmploymentType.FULL_TIME,
+            salary_calculation_method=SalaryMethod.MONTHLY,
+            base_salary_rate=Decimal("25000.00"),
+            standard_working_hours=Decimal("8.00"),
+            created_by=self.superadmin,
+        )
+
+        # 1. Generate for Logistics only
+        period_logistics = generate_payroll_period(
+            cycle_type=PayrollCycle.WEEKLY,
+            start_date=datetime.date(2026, 8, 3),
+            end_date=datetime.date(2026, 8, 9),
+            requested_by=self.accountant,
+            department=dept2,
+        )
+        self.assertEqual(period_logistics.department, dept2)
+        self.assertEqual(period_logistics.statements.count(), 1)
+        self.assertEqual(period_logistics.statements.first().employee, emp_logistics)
+
+        # 2. Operations can also run for the same date range without conflict
+        period_ops = generate_payroll_period(
+            cycle_type=PayrollCycle.WEEKLY,
+            start_date=datetime.date(2026, 8, 3),
+            end_date=datetime.date(2026, 8, 9),
+            requested_by=self.accountant,
+            department=self.dept,
+        )
+        self.assertEqual(period_ops.department, self.dept)
+        # Should not include Logistics employee
+        self.assertFalse(period_ops.statements.filter(employee=emp_logistics).exists())
+        self.assertTrue(period_ops.statements.count() >= 2)
+
+        # 3. Generating again for Logistics for overlapping dates should fail
+        with self.assertRaises(ValueError):
+            generate_payroll_period(
+                cycle_type=PayrollCycle.WEEKLY,
+                start_date=datetime.date(2026, 8, 3),
+                end_date=datetime.date(2026, 8, 9),
+                requested_by=self.accountant,
+                department=dept2,
+            )
+
+
 

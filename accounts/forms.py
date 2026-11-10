@@ -40,11 +40,31 @@ class PortalLoginForm(AuthenticationForm):
             "placeholder": "Enter your password",
         }),
     )
+    captcha = forms.CharField(
+        label="Security Verification",
+        required=False,
+        widget=forms.TextInput(attrs={
+            "class": "form-control text-uppercase font-monospace fw-bold",
+            "autocomplete": "off",
+            "placeholder": "Enter 5-character code",
+            "maxlength": 10,
+        }),
+    )
 
     error_messages = {
         "invalid_login": "Invalid username or password. Please try again.",
         "inactive": "This account has been deactivated.",
     }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        request = getattr(self, "request", None)
+        if request and "login_captcha" in request.session:
+            expected = request.session.get("login_captcha", "").strip().upper()
+            submitted = cleaned_data.get("captcha", "").strip().upper()
+            if not submitted or submitted != expected:
+                self.add_error("captcha", "Invalid security code. Please enter the characters shown in the image.")
+        return cleaned_data
 
 
 # ─── User Account Forms (Superadmin Only) ───────────────────────────────────────

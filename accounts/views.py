@@ -7,6 +7,7 @@ import logging
 from django.contrib.auth import login, logout, update_session_auth_hash, get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError, PermissionDenied
+from django.http import HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views import View
 from django.views.generic import ListView
@@ -31,6 +32,22 @@ User = get_user_model()
 
 # ─── Authentication Views ───────────────────────────────────────────────────────
 
+class CaptchaImageView(View):
+    """
+    Renders dynamic CAPTCHA security image for the login page.
+    Generates a 5-character distorted image and stores the answer in session.
+    """
+    def get(self, request):
+        from .captcha import generate_captcha_image
+        png_bytes, code = generate_captcha_image(length=5)
+        request.session["login_captcha"] = code
+        response = HttpResponse(png_bytes, content_type="image/png")
+        response["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response["Pragma"] = "no-cache"
+        response["Expires"] = "0"
+        return response
+
+
 class LoginView(View):
     template_name = "accounts/login.html"
 
@@ -49,6 +66,8 @@ class LoginView(View):
         form = PortalLoginForm(request, data=request.POST)
         if form.is_valid():
             user = form.get_user()
+            # Clear used CAPTCHA from session
+            request.session.pop("login_captcha", None)
             # Rotate session to prevent fixation
             request.session.cycle_key()
             login(request, user, backend="accounts.backends.ThrottledModelBackend")
@@ -66,14 +85,14 @@ class LoginView(View):
                 return redirect(next_url)
             return redirect("employees:dashboard")
 
-        # Log failed form submission (invalid username/password)
+        # Log failed form submission (invalid username/password or captcha)
         ip = request.META.get("REMOTE_ADDR", "unknown")
         attempted_username = request.POST.get("username", "")
         audit_log(
             actor=None, action="LOGIN_FAIL",
             target_model="CustomUser", target_id=attempted_username,
             ip_address=ip,
-            extra={"reason": "Invalid credentials"},
+            extra={"reason": "Invalid credentials or verification code"},
         )
         return render(request, self.template_name, {"form": form})
 

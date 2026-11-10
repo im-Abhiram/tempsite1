@@ -58,3 +58,37 @@ class CoreBackupAndDiagnosticsTests(TestCase):
         response = self.client.get(reverse("core:download_db_backup"))
         self.assertEqual(response.status_code, 403)
 
+    def test_image_and_document_compression(self):
+        """Verify uploaded documents and photos are automatically compressed."""
+        import io
+        from PIL import Image
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from core.compression import compress_uploaded_document, compress_profile_photo
+
+        # 1. Create a large test image (2000 x 2000)
+        img = Image.new("RGB", (2000, 2000), color=(180, 200, 220))
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=95)
+        raw_bytes = buf.getvalue()
+        upload = SimpleUploadedFile("passport_scan.jpg", raw_bytes, content_type="image/jpeg")
+
+        compressed = compress_uploaded_document(upload, max_dimension=1600, quality=75)
+        self.assertLess(compressed.size, len(raw_bytes))
+
+        # Check resized dimensions
+        res_img = Image.open(compressed)
+        self.assertLessEqual(max(res_img.size), 1600)
+
+        # 2. Test profile photo compression (max 800px)
+        upload_photo = SimpleUploadedFile("avatar.jpg", raw_bytes, content_type="image/jpeg")
+        compressed_photo = compress_profile_photo(upload_photo)
+        self.assertLess(compressed_photo.size, len(raw_bytes))
+        photo_img = Image.open(compressed_photo)
+        self.assertLessEqual(max(photo_img.size), 800)
+
+        # 3. Test non-image file pass-through
+        text_upload = SimpleUploadedFile("notes.txt", b"plain text content", content_type="text/plain")
+        result = compress_uploaded_document(text_upload)
+        self.assertEqual(result.read(), b"plain text content")
+
+

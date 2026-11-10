@@ -8,6 +8,7 @@ app_name = "accounts"
 urlpatterns = [
     path("login/", views.LoginView.as_view(), name="login"),
     path("logout/", views.LogoutView.as_view(), name="logout"),
+    path("captcha/", views.CaptchaImageView.as_view(), name="captcha_image"),
     path("change-password/", views.ChangeOwnPasswordView.as_view(), name="change_password"),
 
     # User management (Superadmin only)

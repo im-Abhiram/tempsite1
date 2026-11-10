@@ -73,12 +73,14 @@ class GeneratePayrollView(AccountantOrSuperadminMixin, View):
         form = GeneratePayrollForm(request.POST)
         if form.is_valid():
             try:
+                dept = form.cleaned_data.get("department")
                 period = generate_payroll_period(
                     cycle_type=form.cleaned_data["cycle_type"],
                     start_date=form.cleaned_data["start_date"],
                     end_date=form.cleaned_data["end_date"],
                     requested_by=request.user,
                     notes=form.cleaned_data.get("notes", ""),
+                    department=dept,
                 )
                 audit_log(
                     actor=request.user, action="PAYROLL_GENERATE",
@@ -88,6 +90,7 @@ class GeneratePayrollView(AccountantOrSuperadminMixin, View):
                         "cycle": period.cycle_type,
                         "start": str(period.start_date),
                         "end": str(period.end_date),
+                        "department": dept.name if dept else "All Departments",
                     },
                 )
                 messages.success(

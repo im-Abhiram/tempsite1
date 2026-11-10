@@ -271,6 +271,15 @@
                     <i class="bi bi-check2-circle"></i> Mark Present
                   </button>
                 </form>
+                <form method="post" action="{% url 'attendance:quick_mark' %}" class="d-inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="employee_pk" value="{{ emp.pk }}">
+                  <input type="hidden" name="work_date" value="{{ work_date|date:'Y-m-d' }}">
+                  <input type="hidden" name="action_type" value="mark_absent">
+                  <button type="submit" class="btn btn-sm btn-outline-danger py-1 px-2 fw-semibold d-inline-flex align-items-center gap-1 shadow-sm" title="Single click to mark Absent" onclick="return confirm('Mark {{ emp.full_name }} as ABSENT for {{ work_date|date:\'d M Y\' }}?');">
+                    <i class="bi bi-x-circle"></i> Mark Absent
+                  </button>
+                </form>
 
                 <!-- Link to manual log if accountant needed to add overtime or remarks -->
                 <a href="{% url 'attendance:attendance_mark_emp' emp.pk %}?date={{ work_date|date:'Y-m-d' }}" class="btn btn-sm btn-outline-teal py-1 px-2" title="Open Manual Log to enter custom overtime or remarks">

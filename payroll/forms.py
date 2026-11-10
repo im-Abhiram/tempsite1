@@ -3,6 +3,7 @@
 import datetime
 from django import forms
 from accounts.models import PayrollCycle
+from employees.models import Department
 from .models import PayrollPeriod, PayrollStatus
 
 
@@ -11,6 +12,14 @@ class GeneratePayrollForm(forms.Form):
         choices=PayrollCycle.choices,
         widget=forms.Select(attrs={"class": "form-select"}),
         label="Payroll Cycle",
+    )
+    department = forms.ModelChoiceField(
+        queryset=Department.objects.filter(is_active=True),
+        required=False,
+        empty_label="All Departments (Entire Organization)",
+        widget=forms.Select(attrs={"class": "form-select"}),
+        label="Department Scope",
+        help_text="Select a single department or leave blank for all departments.",
     )
     start_date = forms.DateField(
         widget=forms.DateInput(attrs={"class": "form-control", "type": "date"}),

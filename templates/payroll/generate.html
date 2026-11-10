@@ -46,6 +46,13 @@
             {% if form.cycle_type.errors %}<div class="text-danger small mt-1">{% for e in form.cycle_type.errors %}{{ e }}{% endfor %}</div>{% endif %}
           </div>
 
+          <div class="mb-3">
+            <label for="id_department" class="form-label fw-semibold" style="font-size: 13px;">Department Scope</label>
+            {{ form.department }}
+            <small class="text-muted d-block mt-1">Select a single department to run cycle for, or leave as <em>All Departments</em> for organization-wide run.</small>
+            {% if form.department.errors %}<div class="text-danger small mt-1">{% for e in form.department.errors %}{{ e }}{% endfor %}</div>{% endif %}
+          </div>
+
           <div class="row g-3 mb-3">
             <div class="col-md-6">
               <label for="id_start_date" class="form-label fw-semibold" style="font-size: 13px;">Start Date *</label>

@@ -147,13 +147,61 @@ class QuickAttendanceMarkView(AccountantOrSuperadminMixin, View):
             messages.success(request, f"✓ Quick-marked {created} pending employees as Present for {work_date}.")
             return redirect(redirect_url)
 
-        employee_pk = request.POST.get("employee_pk")
+        employee_pk = request.POST.get("employee_pk") or request.POST.get("employee_id")
         if not employee_pk:
             messages.error(request, "Employee not specified.")
             return redirect(redirect_url)
 
         employee = get_object_or_404(Employee, pk=employee_pk)
         record = AttendanceRecord.objects.filter(employee=employee, work_date=work_date).first()
+
+        if action_type == "mark_absent":
+            if record:
+                if record.is_locked_by_payroll:
+                    messages.error(request, "Cannot mark absent: record is locked by finalized payroll.")
+                    return redirect(redirect_url)
+                with transaction.atomic():
+                    record.status = AttendanceStatus.ABSENT
+                    record.check_in = None
+                    record.check_out = None
+                    record.net_working_hours = Decimal("0.00")
+                    record.regular_hours = Decimal("0.00")
+                    record.overtime_hours = Decimal("0.00")
+                    record.is_late = False
+                    record.last_modified_by = request.user
+                    record.correction_reason = "Quick-marked absent"
+                    record.save()
+                    audit_log(
+                        actor=request.user, action="ATTENDANCE_CORRECTION",
+                        target_model="AttendanceRecord", target_id=str(record.pk),
+                        ip_address=request.META.get("REMOTE_ADDR"),
+                        extra={"employee_id": employee.employee_id, "action": "quick_mark_absent", "work_date": str(work_date)},
+                    )
+                messages.warning(request, f"Marked {employee.full_name} as ABSENT for {work_date}.")
+                return redirect(redirect_url)
+            else:
+                with transaction.atomic():
+                    new_rec = AttendanceRecord.objects.create(
+                        employee=employee,
+                        work_date=work_date,
+                        status=AttendanceStatus.ABSENT,
+                        entry_method=AttendanceEntryMethod.MANUAL,
+                        correction_reason="Quick-marked absent",
+                        created_by=request.user,
+                        last_modified_by=request.user,
+                        net_working_hours=Decimal("0.00"),
+                        regular_hours=Decimal("0.00"),
+                        overtime_hours=Decimal("0.00"),
+                        is_late=False,
+                    )
+                    audit_log(
+                        actor=request.user, action="ATTENDANCE_MARK",
+                        target_model="AttendanceRecord", target_id=str(new_rec.pk),
+                        ip_address=request.META.get("REMOTE_ADDR"),
+                        extra={"employee_id": employee.employee_id, "action": "quick_mark_absent", "work_date": str(work_date)},
+                    )
+                messages.warning(request, f"Marked {employee.full_name} as ABSENT for {work_date}.")
+                return redirect(redirect_url)
 
         if action_type == "clock_out" and record:
             if record.is_locked_by_payroll:

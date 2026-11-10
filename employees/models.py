@@ -146,9 +146,9 @@ class Employee(models.Model):
     email = models.EmailField(blank=True)
     residential_address = models.TextField()
 
-    # Emergency Contact
-    emergency_contact_name = models.CharField(max_length=150)
-    emergency_contact_phone = models.CharField(max_length=20)
+    # Emergency Contact (Optional)
+    emergency_contact_name = models.CharField(max_length=150, blank=True)
+    emergency_contact_phone = models.CharField(max_length=20, blank=True)
 
     # Employment
     department = models.ForeignKey(Department, on_delete=models.PROTECT, related_name="employees")

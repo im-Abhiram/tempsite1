@@ -42,7 +42,18 @@
             {% if period.notes %}<div class="text-muted small text-truncate" style="max-width: 250px;">{{ period.notes }}</div>{% endif %}
           </td>
           <td>
-            <span class="badge bg-light text-navy border">{{ period.get_cycle_type_display }}</span>
+            <div class="d-flex flex-column gap-1">
+              <span class="badge bg-light text-navy border">{{ period.get_cycle_type_display }}</span>
+              {% if period.department %}
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: 11px;">
+                  <i class="bi bi-building me-1"></i>{{ period.department.name }}
+                </span>
+              {% else %}
+                <span class="badge bg-light text-muted border" style="font-size: 11px;">
+                  <i class="bi bi-globe me-1"></i>All Depts
+                </span>
+              {% endif %}
+            </div>
           </td>
           <td>
             <span class="fw-semibold">{{ period.statements.count }} Staff</span>
