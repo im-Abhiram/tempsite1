@@ -18,19 +18,15 @@ def generate_math_captcha_image(*args, **kwargs) -> tuple[bytes, str]:
     Generate a dynamic mathematical security challenge image and its corresponding answer.
     Returns: (png_bytes, answer_str)
     """
-    op = random.choice(["+", "-", "×"])
+    op = random.choice(["+", "-"])
     if op == "+":
         a = random.randint(3, 25)
         b = random.randint(2, 20)
         ans = a + b
-    elif op == "-":
+    else:  # subtraction
         a = random.randint(12, 35)
         b = random.randint(2, a - 1)
         ans = a - b
-    else:  # multiplication
-        a = random.randint(2, 9)
-        b = random.randint(2, 9)
-        ans = a * b
 
     question_text = f"{a} {op} {b} = ?"
     answer_str = str(ans)
