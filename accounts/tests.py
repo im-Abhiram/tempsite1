@@ -119,3 +119,56 @@ class AccountsModelAndAuthTests(TestCase):
         })
         self.assertRedirects(ok_res, reverse("employees:dashboard"))
         self.assertNotIn("login_captcha", self.client.session)
+
+    def test_superadmin_can_change_username(self):
+        """Superadmin can update the login username of any account or their own."""
+        self.client.force_login(self.superadmin)
+
+        # 1. Change accountant's username
+        edit_url = reverse("accounts:user_edit", kwargs={"pk": self.accountant.pk})
+        res = self.client.post(edit_url, {
+            "username": "acct_renamed",
+            "display_name": "Accountant Renamed",
+            "email": "acct_new@example.com",
+            "role": Role.ACCOUNTANT,
+            "is_active": True,
+        })
+        self.assertEqual(res.status_code, 302)
+        self.accountant.refresh_from_db()
+        self.assertEqual(self.accountant.username, "acct_renamed")
+
+        # 2. Change own superadmin username
+        self_edit_url = reverse("accounts:user_edit", kwargs={"pk": self.superadmin.pk})
+        res2 = self.client.post(self_edit_url, {
+            "username": "superadmin_new",
+            "display_name": "Chief Superadmin",
+            "email": "super_new@example.com",
+        })
+        self.assertEqual(res2.status_code, 302)
+        self.superadmin.refresh_from_db()
+        self.assertEqual(self.superadmin.username, "superadmin_new")
+
+    def test_inactivity_timeout_and_browser_close_session(self):
+        """Verify 60-minute inactivity timeout and browser-close session invalidation."""
+        # 1. Login sets browser-close cookie expiry
+        login_res = self.client.post(reverse("accounts:login"), {
+            "username": "accountant1",
+            "password": "StrongPassword123!",
+        })
+        self.assertRedirects(login_res, reverse("employees:dashboard"))
+        self.assertTrue(self.client.session.get_expire_at_browser_close())
+
+        # 2. Within timeout (active session works)
+        active_res = self.client.get(reverse("employees:dashboard"))
+        self.assertEqual(active_res.status_code, 200)
+
+        # 3. Simulate 61 minutes of inactivity (> 3600 seconds)
+        session = self.client.session
+        session["_last_activity"] = int(timezone.now().timestamp()) - 3660
+        session.save()
+
+        # 4. Next request should automatically log out and redirect with ?timeout=1
+        timeout_res = self.client.get(reverse("employees:dashboard"))
+        self.assertEqual(timeout_res.status_code, 302)
+        self.assertIn("timeout=1", timeout_res.url)
+

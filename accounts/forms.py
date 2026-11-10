@@ -128,14 +128,16 @@ class CreateUserForm(forms.ModelForm):
 
 class EditUserForm(forms.ModelForm):
     """
-    Edit an existing account. Role changes by Superadmin only.
-    Users cannot edit their own role (enforced in view).
+    Edit an existing account. Allows Superadmin to modify username, display name, email,
+    role, and active status.
+    Users cannot edit their own role or suspend themselves (enforced in view & form).
     """
 
     class Meta:
         model = User
-        fields = ["display_name", "email", "role", "is_active"]
+        fields = ["username", "display_name", "email", "role", "is_active"]
         widgets = {
+            "username": forms.TextInput(attrs={"class": "form-control"}),
             "display_name": forms.TextInput(attrs={"class": "form-control"}),
             "email": forms.EmailInput(attrs={"class": "form-control"}),
             "role": forms.Select(attrs={"class": "form-select"}),
@@ -146,14 +148,26 @@ class EditUserForm(forms.ModelForm):
         self.editing_user = kwargs.pop("editing_user", None)
         self.target_user = kwargs.pop("target_user", None)
         super().__init__(*args, **kwargs)
-        # Prevent downgrading self
+        # Prevent downgrading or suspending self
         if self.editing_user and self.target_user and self.editing_user == self.target_user:
             self.fields.pop("role", None)
             self.fields.pop("is_active", None)
 
+    def clean_username(self):
+        new_username = self.cleaned_data.get("username", "").strip()
+        if not new_username:
+            raise ValidationError("Username cannot be empty.")
+        # Check uniqueness against other users (excluding current instance)
+        qs = User.objects.filter(username__iexact=new_username)
+        if self.instance and self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise ValidationError(f"Username '{new_username}' is already in use by another account.")
+        return new_username
+
     def clean_role(self):
         new_role = self.cleaned_data.get("role")
-        if new_role == Role.SUPERADMIN:
+        if new_role == Role.SUPERADMIN and self.instance and self.instance.role != Role.SUPERADMIN:
             raise ValidationError("Cannot assign Superadmin role through this form.")
         return new_role
 

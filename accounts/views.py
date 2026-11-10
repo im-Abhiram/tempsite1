@@ -71,6 +71,9 @@ class LoginView(View):
             # Rotate session to prevent fixation
             request.session.cycle_key()
             login(request, user, backend="accounts.backends.ThrottledModelBackend")
+            # Enforce browser-close session termination & initialize 60-min idle timer
+            request.session.set_expiry(0)
+            request.session["_last_activity"] = int(timezone.now().timestamp())
             ip = request.META.get("REMOTE_ADDR", "unknown")
             user.record_successful_login(ip_address=ip)
             audit_log(
@@ -229,6 +232,7 @@ class EditUserView(SuperadminRequiredMixin, View):
         if "role" in request.POST and target.pk == request.user.pk:
             raise PermissionDenied("You cannot modify your own role.")
 
+        old_username = target.username
         old_role = target.role
         old_active = target.is_active
 
@@ -240,6 +244,8 @@ class EditUserView(SuperadminRequiredMixin, View):
             with transaction.atomic():
                 user = form.save()
                 changes = {}
+                if user.username != old_username:
+                    changes["username"] = {"old": old_username, "new": user.username}
                 if user.role != old_role:
                     changes["role"] = {"old": old_role, "new": user.role}
                 if user.is_active != old_active:
@@ -250,7 +256,10 @@ class EditUserView(SuperadminRequiredMixin, View):
                     ip_address=request.META.get("REMOTE_ADDR", "unknown"),
                     extra=changes,
                 )
-            messages.success(request, f"Account '{target.username}' updated.")
+            if user.username != old_username:
+                messages.success(request, f"Account username successfully changed from '{old_username}' to '{user.username}'.")
+            else:
+                messages.success(request, f"Account '{user.username}' updated.")
             return redirect("accounts:user_list")
         return render(request, self.template_name, {
             "form": form, "action": "Edit", "target_user": target,

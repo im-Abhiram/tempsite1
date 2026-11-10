@@ -276,7 +276,7 @@
                   <input type="hidden" name="employee_pk" value="{{ emp.pk }}">
                   <input type="hidden" name="work_date" value="{{ work_date|date:'Y-m-d' }}">
                   <input type="hidden" name="action_type" value="mark_absent">
-                  <button type="submit" class="btn btn-sm btn-outline-danger py-1 px-2 fw-semibold d-inline-flex align-items-center gap-1 shadow-sm" title="Single click to mark Absent" onclick="return confirm('Mark {{ emp.full_name }} as ABSENT for {{ work_date|date:\'d M Y\' }}?');">
+                  <button type="submit" class="btn btn-sm btn-outline-danger py-1 px-2 fw-semibold d-inline-flex align-items-center gap-1 shadow-sm" title="Single click to mark Absent" onclick="return confirm('Mark {{ emp.full_name }} as ABSENT?');">
                     <i class="bi bi-x-circle"></i> Mark Absent
                   </button>
                 </form>

@@ -218,6 +218,9 @@
               <div class="fw-bold">{{ request.user.get_full_name|default:request.user.username }}</div>
               <small class="text-muted">{{ request.user.get_role_display }}</small>
             </li>
+            {% if is_superadmin %}
+            <li><a class="dropdown-item py-2" href="{% url 'accounts:user_edit' request.user.pk %}"><i class="bi bi-person-gear me-2"></i>Edit Profile & Username</a></li>
+            {% endif %}
             <li><a class="dropdown-item py-2" href="{% url 'accounts:change_password' %}"><i class="bi bi-shield-lock me-2"></i>Change Password</a></li>
             <li><hr class="dropdown-divider"></li>
             <li>

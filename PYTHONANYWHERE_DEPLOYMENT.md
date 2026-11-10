@@ -12,14 +12,14 @@ This guide provides exact step-by-step instructions for deploying the **Thamaray
 
 | Component | Path on PythonAnywhere | Purpose |
 | :--- | :--- | :--- |
-| **Project Root** | `/home/thamara/thamarayyath` | Django source code, templates, and apps |
+| **Project Root** | `/home/thamara/tempsite1` | Django source code, templates, and apps |
 | **Virtual Environment** | `/home/thamara/.virtualenvs/portal-env` | Isolated Python 3.10 / 3.11 environment |
 | **WSGI File** | `/var/www/thamara_pythonanywhere_com_wsgi.py` | PythonAnywhere WSGI server entry point |
-| **SQLite Database** | `/home/thamara/thamarayyath/db.sqlite3` | Persistent local database in home directory |
-| **Static Files (Served)**| `/home/thamara/thamarayyath/staticfiles` | Production assets (Bootstrap, Chart.js, CSS) |
-| **Public Media** | `/home/thamara/thamarayyath/media/employee_photos` | Employee profile pictures |
-| **Private Vault** | `/home/thamara/thamarayyath/media/employee_documents` | Confidential documents (served via Django views) |
-| **Logs** | `/home/thamara/thamarayyath/logs/portal.log` | Rotating security and audit logs |
+| **SQLite Database** | `/home/thamara/tempsite1/db.sqlite3` | Persistent local database in home directory |
+| **Static Files (Served)**| `/home/thamara/tempsite1/staticfiles` | Production assets (Bootstrap, Chart.js, CSS) |
+| **Public Media** | `/home/thamara/tempsite1/media/employee_photos` | Employee profile pictures |
+| **Private Vault** | `/home/thamara/tempsite1/media/employee_documents` | Confidential documents (served via Django views) |
+| **Logs** | `/home/thamara/tempsite1/logs/portal.log` | Rotating security and audit logs |
 
 ---
 
@@ -27,11 +27,11 @@ This guide provides exact step-by-step instructions for deploying the **Thamaray
 
 1. Log in to your PythonAnywhere account at [https://www.pythonanywhere.com/](https://www.pythonanywhere.com/) with username **`thamara`**.
 2. Open a **Bash Console** from the **Consoles** tab.
-3. Clone your repository directly into `/home/thamara/thamarayyath`:
+3. Clone your repository directly into `/home/thamara/tempsite1`:
 
 ```bash
-git clone https://github.com/im-Abhiram/tempsite1.git /home/thamara/thamarayyath
-cd /home/thamara/thamarayyath
+git clone https://github.com/im-Abhiram/tempsite1.git /home/thamara/tempsite1
+cd /home/thamara/tempsite1
 ```
 
 ---
@@ -45,7 +45,7 @@ In your active PythonAnywhere **Bash Console**, create a Python 3.10 virtual env
 mkvirtualenv --python=/usr/bin/python3.10 portal-env
 
 # 2. Navigate to your project directory
-cd /home/thamara/thamarayyath
+cd /home/thamara/tempsite1
 
 # 3. Upgrade pip and install all required packages
 pip install --upgrade pip
@@ -58,7 +58,7 @@ pip install -r requirements.txt
 
 ## Step 3: Configure the Production `.env` File
 
-Inside `/home/thamara/thamarayyath/`, create your production `.env` file:
+Inside `/home/thamara/tempsite1/`, create your production `.env` file:
 
 ```bash
 nano .env
@@ -106,7 +106,7 @@ Save and exit `nano` by pressing `Ctrl + O`, `Enter`, then `Ctrl + X`.
 In your Bash Console (with `portal-env` active):
 
 ```bash
-cd /home/thamara/thamarayyath
+cd /home/thamara/tempsite1
 
 # 1. Apply database migrations to create persistent SQLite tables
 python manage.py migrate
@@ -135,8 +135,8 @@ Navigate to the **Web** tab in PythonAnywhere:
 4. Once the web app is created, configure each section on the Web tab page:
 
 ### Code Section
-- **Source code:** `/home/thamara/thamarayyath`
-- **Working directory:** `/home/thamara/thamarayyath`
+- **Source code:** `/home/thamara/tempsite1`
+- **Working directory:** `/home/thamara/tempsite1`
 
 ### Virtualenv Section
 - **Virtualenv path:** `/home/thamara/.virtualenvs/portal-env`
@@ -147,8 +147,8 @@ Add the following two URL-to-Directory mappings:
 
 | URL | Directory Path |
 | :--- | :--- |
-| `/static/` | `/home/thamara/thamarayyath/staticfiles` |
-| `/media/employee_photos/` | `/home/thamara/thamarayyath/media/employee_photos` |
+| `/static/` | `/home/thamara/tempsite1/staticfiles` |
+| `/media/employee_photos/` | `/home/thamara/tempsite1/media/employee_photos` |
 
 > **Security Note:** Do **NOT** map `/media/employee_documents/` or `/media/payroll_documents/` in the Web tab!
 > These directories store private employee Aadhaar cards, contracts, and salary files. They are served exclusively through authenticated Django views (`DocumentServeView`) after verifying user permissions.
@@ -173,7 +173,7 @@ from dotenv import load_dotenv
 
 # 1. Add project directory to sys.path
 username = "thamara"
-project_home = f"/home/{username}/thamarayyath"
+project_home = f"/home/{username}/tempsite1"
 
 if project_home not in sys.path:
     sys.path.insert(0, project_home)
@@ -265,7 +265,7 @@ Open a **Bash Console** on PythonAnywhere and run the following steps:
 #### Step 1: Create a Safety Snapshot of Your Database
 Before pulling updates or applying database migrations, make a quick local backup:
 ```bash
-cd /home/thamara/thamarayyath
+cd /home/thamara/tempsite1
 cp db.sqlite3 db.sqlite3.bak_$(date +%Y%m%d_%H%M%S)
 ```
 *(This creates an instant timestamped copy like `db.sqlite3.bak_20261109_163000` in your folder. If you ever need to restore, just copy it back).*
@@ -275,7 +275,7 @@ cp db.sqlite3 db.sqlite3.bak_$(date +%Y%m%d_%H%M%S)
 #### Step 2: Activate Your Virtual Environment
 ```bash
 workon portal-env
-cd /home/thamara/thamarayyath
+cd /home/thamara/tempsite1
 ```
 
 #### Step 3: Pull Latest Code from GitHub
@@ -321,6 +321,6 @@ touch /var/www/thamara_pythonanywhere_com_wsgi.py
 Once you are familiar with the process, you can copy-paste this single line into your PythonAnywhere Bash Console to run the entire safe update automatically:
 
 ```bash
-cd /home/thamara/thamarayyath && workon portal-env && cp db.sqlite3 db.sqlite3.bak_$(date +%Y%m%d_%H%M%S) && git pull origin main && pip install -r requirements.txt && python manage.py migrate && python manage.py collectstatic --noinput && touch /var/www/thamara_pythonanywhere_com_wsgi.py
+cd /home/thamara/tempsite1 && workon portal-env && cp db.sqlite3 db.sqlite3.bak_$(date +%Y%m%d_%H%M%S) && git pull origin main && pip install -r requirements.txt && python manage.py migrate && python manage.py collectstatic --noinput && touch /var/www/thamara_pythonanywhere_com_wsgi.py
 ```
 This single command safely creates a backup, pulls latest code, updates packages, migrates the database, collects static files, and reloads your live website!
