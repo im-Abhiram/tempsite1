@@ -34,13 +34,13 @@ User = get_user_model()
 
 class CaptchaImageView(View):
     """
-    Renders dynamic CAPTCHA security image for the login page.
-    Generates a 5-character distorted image and stores the answer in session.
+    Renders dynamic mathematical CAPTCHA security challenge image for the login page.
+    Generates an arithmetic problem and stores the calculated answer in session.
     """
     def get(self, request):
-        from .captcha import generate_captcha_image
-        png_bytes, code = generate_captcha_image(length=5)
-        request.session["login_captcha"] = code
+        from .captcha import generate_math_captcha_image
+        png_bytes, code = generate_math_captcha_image()
+        request.session["login_captcha"] = str(code).strip()
         response = HttpResponse(png_bytes, content_type="image/png")
         response["Cache-Control"] = "no-cache, no-store, must-revalidate"
         response["Pragma"] = "no-cache"

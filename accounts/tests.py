@@ -92,25 +92,26 @@ class AccountsModelAndAuthTests(TestCase):
         self.assertEqual(res.status_code, 403)
 
     def test_captcha_generation_and_validation(self):
-        """Test CAPTCHA image generation, invalid code rejection, and valid code acceptance."""
-        # 1. Fetch CAPTCHA image
+        """Test mathematical CAPTCHA image generation, invalid code rejection, and valid code acceptance."""
+        # 1. Fetch mathematical CAPTCHA image
         res = self.client.get(reverse("accounts:captcha_image"))
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res["Content-Type"], "image/png")
         captcha_code = self.client.session.get("login_captcha")
         self.assertTrue(bool(captcha_code))
-        self.assertEqual(len(captcha_code), 5)
+        # Mathematical answer is a valid integer string
+        self.assertTrue(captcha_code.isdigit())
 
-        # 2. Login attempt with WRONG CAPTCHA fails
+        # 2. Login attempt with WRONG answer fails
         fail_res = self.client.post(reverse("accounts:login"), {
             "username": "accountant1",
             "password": "StrongPassword123!",
-            "captcha": "WRONG",
+            "captcha": "999999",
         })
         self.assertEqual(fail_res.status_code, 200)
-        self.assertContains(fail_res, "Invalid security code")
+        self.assertContains(fail_res, "Incorrect answer")
 
-        # 3. Login attempt with CORRECT CAPTCHA succeeds
+        # 3. Login attempt with CORRECT answer succeeds
         ok_res = self.client.post(reverse("accounts:login"), {
             "username": "accountant1",
             "password": "StrongPassword123!",

@@ -138,9 +138,10 @@ class EmployeeForm(forms.ModelForm):
 
     def clean_photo(self):
         photo = self.cleaned_data.get("photo")
-        if photo:
-            from core.compression import compress_profile_photo
-            photo = compress_profile_photo(photo, max_dimension=800, quality=80)
+        if photo and hasattr(photo, "size"):
+            max_size = 2 * 1024 * 1024  # 2 MB for photos
+            if photo.size > max_size:
+                raise ValidationError("Photo must be smaller than 2 MB.")
         return photo
 
     def clean(self):

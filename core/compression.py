@@ -150,3 +150,4 @@ def _compress_image_data(
         if hasattr(file_obj, "seek"):
             file_obj.seek(0)
         return file_obj
+

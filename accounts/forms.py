@@ -41,13 +41,14 @@ class PortalLoginForm(AuthenticationForm):
         }),
     )
     captcha = forms.CharField(
-        label="Security Verification",
+        label="Math Security Question",
         required=False,
         widget=forms.TextInput(attrs={
-            "class": "form-control text-uppercase font-monospace fw-bold",
+            "class": "form-control fw-bold",
             "autocomplete": "off",
-            "placeholder": "Enter 5-character code",
+            "placeholder": "Enter math result (e.g. 15)",
             "maxlength": 10,
+            "inputmode": "numeric",
         }),
     )
 
@@ -60,10 +61,10 @@ class PortalLoginForm(AuthenticationForm):
         cleaned_data = super().clean()
         request = getattr(self, "request", None)
         if request and "login_captcha" in request.session:
-            expected = request.session.get("login_captcha", "").strip().upper()
-            submitted = cleaned_data.get("captcha", "").strip().upper()
+            expected = str(request.session.get("login_captcha", "")).strip()
+            submitted = str(cleaned_data.get("captcha", "")).strip()
             if not submitted or submitted != expected:
-                self.add_error("captcha", "Invalid security code. Please enter the characters shown in the image.")
+                self.add_error("captcha", "Incorrect answer. Please solve the math problem shown in the image.")
         return cleaned_data
 
 
