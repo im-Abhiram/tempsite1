@@ -28,6 +28,7 @@ def portal_context(request):
 
         ctx["current_user_role"] = request.user.role
         ctx["is_superadmin"] = request.user.is_superadmin
+        ctx["is_office_admin"] = request.user.is_office_admin
         ctx["is_accountant"] = request.user.is_accountant
         ctx["is_owner"] = request.user.is_owner
 

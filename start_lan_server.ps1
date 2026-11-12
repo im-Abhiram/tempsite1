@@ -45,9 +45,9 @@ if ($LocalIPs) {
 
 Write-Host "----------------------------------------------------------------------" -ForegroundColor DarkGray
 Write-Host "  Default Demo Credentials:" -ForegroundColor White
-Write-Host "  * Superadmin: admin      / AdminPass123!" -ForegroundColor White
-Write-Host "  * Accountant: accountant / AccountPass123!" -ForegroundColor White
-Write-Host "  * Owner:      owner      / OwnerPass123!" -ForegroundColor White
+Write-Host "  * Superadmin:            admin      / AdminPass123!" -ForegroundColor White
+Write-Host "  * Office Administration: accountant / AccountPass123!" -ForegroundColor White
+Write-Host "  * Owner:                 owner      / OwnerPass123!" -ForegroundColor White
 Write-Host "======================================================================`n" -ForegroundColor Green
 
 # 3. Launch Waitress Production WSGI Server

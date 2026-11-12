@@ -47,6 +47,13 @@
           </div>
 
           <div class="mb-3">
+            <label for="id_designation" class="form-label fw-semibold" style="font-size: 13px;">Designation</label>
+            {{ form.designation }}
+            <small class="text-muted d-block mt-1">Official job title or designation (e.g. Office Administrator, Managing Director, System Administrator).</small>
+            {% if form.designation.errors %}<div class="text-danger small mt-1">{% for e in form.designation.errors %}{{ e }}{% endfor %}</div>{% endif %}
+          </div>
+
+          <div class="mb-3">
             <label for="id_email" class="form-label fw-semibold" style="font-size: 13px;">Email Address</label>
             {{ form.email }}
             {% if form.email.errors %}<div class="text-danger small mt-1">{% for e in form.email.errors %}{{ e }}{% endfor %}</div>{% endif %}
@@ -56,7 +63,7 @@
           <div class="mb-3">
             <label for="id_role" class="form-label fw-semibold" style="font-size: 13px;">Access Role *</label>
             {{ form.role }}
-            <small class="text-muted d-block mt-1"><strong>Accountant</strong>: Mark attendance, process payroll. <strong>Owner</strong>: Read-only summary views.</small>
+            <small class="text-muted d-block mt-1"><strong>Office Administration</strong>: Mark attendance, process payroll. <strong>Owner</strong>: Read-only summary views.</small>
             {% if form.role.errors %}<div class="text-danger small mt-1">{% for e in form.role.errors %}{{ e }}{% endfor %}</div>{% endif %}
           </div>
           {% endif %}

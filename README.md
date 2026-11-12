@@ -29,7 +29,7 @@ Engineered specifically for zero-cost deployment on a **PythonAnywhere Free (Beg
 
 ## Core Features
 
-- **Role-Aware Dashboards**: Separate specialized views tailored for Superadmin, Accountant, and Owner.
+- **Role-Aware Dashboards**: Separate specialized views tailored for Superadmin, Office Administration, and Owner.
 - **Precision Payroll Calculation Engine**:
   - **4 Pay Cycles**: Weekly (7d), Bi-Weekly (14d), Three-Weekly (21d), and Monthly.
   - **3 Salary Methods**: Hourly, Daily Wage, and Monthly Salaried with calendar proration.
@@ -59,7 +59,7 @@ Engineered specifically for zero-cost deployment on a **PythonAnywhere Free (Beg
 
 The portal enforces server-side role gating on all views:
 
-| Module / Action | Superadmin | Accountant | Owner |
+| Module / Action | Superadmin | Office Administration | Owner |
 |---|:---:|:---:|:---:|
 | **Dashboard** | Full system overview & audit logs | Operational punch & payroll hub | High-level summary (Read-only) |
 | **Employee Roster** | Create, Edit, View | Create, Edit, View | View Only |
@@ -153,7 +153,7 @@ The portal is pre-seeded with sample departments, shifts, employees, attendance 
 | Role | Username | Password | Purpose |
 |---|---|---|---|
 | **Superadmin** | `admin` | `AdminPass123!` | System configuration, user provisioning, security audit logs |
-| **Accountant** | `accountant` | `AccountPass123!` | Daily attendance punches, shift management, payroll generation |
+| **Office Administration** | `accountant` | `AccountPass123!` | Daily attendance punches, shift management, payroll generation |
 | **Owner** | `owner` | `OwnerPass123!` | Executive dashboard, high-level financials, read-only summaries |
 
 *To re-seed demonstration data at any time, run:*
@@ -182,7 +182,7 @@ d:\THAMARAYYATH\
 ├── attendance\               # Punch logging, overtime, overnight shifts, corrections & leaves
 ├── audit\                    # Security and compliance logging (tamper-evident audit trail)
 ├── core\                     # Live SQLite online backup API & disk storage metrics
-├── dashboard\                # Dedicated role dashboards (Superadmin, Accountant, Owner)
+├── dashboard\                # Dedicated role dashboards (Superadmin, Office Administration, Owner)
 ├── employees\                # Staff roster, departments, shifts, salary history & documents
 ├── payroll\                  # Multi-period payroll calculation engine & adjustment workflows
 ├── reports\                  # Reports Hub & CSV/Excel/PDF exports with formula injection defense

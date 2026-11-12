@@ -31,10 +31,10 @@ SAFE_STR = lambda v: ("'" + str(v)) if str(v).startswith(("=", "+", "-", "@", "\
 def _check_export_permission(request, is_sensitive_salary=False):
     """
     Enforces that Owners can only export if allow_owner_export is enabled.
-    Sensitive salary reports are restricted to Superadmin and Accountant.
+    Sensitive salary reports are restricted to Superadmin and Office Administration.
     """
     if is_sensitive_salary and request.user.is_owner:
-        raise PermissionDenied("Access to sensitive salary export is restricted to Accountant and Superadmin.")
+        raise PermissionDenied("Access to sensitive salary export is restricted to Office Administration and Superadmin.")
     if request.user.is_owner and not CompanySettings.get().allow_owner_export:
         raise PermissionDenied("Data exports are disabled for your role by company policy.")
 

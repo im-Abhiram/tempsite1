@@ -61,22 +61,42 @@ class Command(BaseCommand):
         # 2. Users
         superadmin, _ = User.objects.get_or_create(
             username="admin",
-            defaults={"role": Role.SUPERADMIN, "display_name": "Portal Superadmin", "email": "admin@thamarayyath.local"}
+            defaults={
+                "role": Role.SUPERADMIN,
+                "display_name": "Portal Superadmin",
+                "designation": "Superadmin",
+                "email": "admin@thamarayyath.local",
+            }
         )
+        superadmin.designation = "Superadmin"
         superadmin.set_password("AdminPass123!")
         superadmin.save()
 
         accountant, _ = User.objects.get_or_create(
             username="accountant",
-            defaults={"role": Role.ACCOUNTANT, "display_name": "Accounts Officer", "email": "accountant@thamarayyath.local"}
+            defaults={
+                "role": Role.OFFICE_ADMIN,
+                "display_name": "Office Administrator",
+                "designation": "Office Administrator",
+                "email": "accountant@thamarayyath.local",
+            }
         )
+        accountant.role = Role.OFFICE_ADMIN
+        accountant.display_name = "Office Administrator"
+        accountant.designation = "Office Administrator"
         accountant.set_password("AccountPass123!")
         accountant.save()
 
         owner, _ = User.objects.get_or_create(
             username="owner",
-            defaults={"role": Role.OWNER, "display_name": "Company Managing Director", "email": "owner@thamarayyath.local"}
+            defaults={
+                "role": Role.OWNER,
+                "display_name": "Company Managing Director",
+                "designation": "Managing Director",
+                "email": "owner@thamarayyath.local",
+            }
         )
+        owner.designation = "Managing Director"
         owner.set_password("OwnerPass123!")
         owner.save()
         self.stdout.write(self.style.SUCCESS("[OK] Demo users created (admin, accountant, owner)."))
@@ -295,8 +315,8 @@ class Command(BaseCommand):
 ======================================================================
   Default System Accounts:
   ------------------------------------------------------------------
-  * Superadmin:  admin      /  AdminPass123!
-  * Accountant:  accountant /  AccountPass123!
-  * Owner:       owner      /  OwnerPass123!
+  * Superadmin:            admin      /  AdminPass123!
+  * Office Administration: accountant /  AccountPass123!
+  * Owner:                 owner      /  OwnerPass123!
 ======================================================================
 """))

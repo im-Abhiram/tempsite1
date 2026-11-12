@@ -210,9 +210,9 @@ Log in as Superadmin at `https://thamara.pythonanywhere.com/accounts/login/` and
 
 - [ ] **Role Management**:
   - Visit `/accounts/users/create/`.
-  - Create one **Accountant** user and one **Owner** user.
+  - Create one **Office Administration** user and one **Owner** user.
 - [ ] **Employee Profiles**:
-  - Log in as the Accountant user.
+  - Log in as the Office Administration user.
   - Create an employee with designation, shift, salary rate, and bank details.
   - Upload a profile picture and a test PDF document.
 - [ ] **Attendance & Corrections**:

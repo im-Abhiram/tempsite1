@@ -33,8 +33,8 @@ class DashboardRouterView(AnyRoleMixin, View):
     def get(self, request):
         if request.user.is_superadmin:
             return SuperadminDashboardView().get(request)
-        elif request.user.is_accountant:
-            return AccountantDashboardView().get(request)
+        elif request.user.is_office_admin:
+            return OfficeAdminDashboardView().get(request)
         else:
             return OwnerDashboardView().get(request)
 
@@ -53,7 +53,7 @@ class SuperadminDashboardView(SuperadminRequiredMixin, View):
         active_emp = Employee.objects.filter(employment_status=EmploymentStatus.ACTIVE).count()
         inactive_emp = total_emp - active_emp
 
-        accountant_count = CustomUser.objects.filter(role=Role.ACCOUNTANT).count()
+        office_admin_count = CustomUser.objects.filter(role__in=[Role.OFFICE_ADMIN, "ACCOUNTANT"]).count()
         owner_count = CustomUser.objects.filter(role=Role.OWNER).count()
 
         # Today's attendance
@@ -110,7 +110,8 @@ class SuperadminDashboardView(SuperadminRequiredMixin, View):
             "total_employees": total_emp,
             "active_employees": active_emp,
             "inactive_employees": inactive_emp,
-            "accountant_count": accountant_count,
+            "accountant_count": office_admin_count,
+            "office_admin_count": office_admin_count,
             "owner_count": owner_count,
             "today_present": today_present,
             "today_half_day": today_half_day,
@@ -130,9 +131,9 @@ class SuperadminDashboardView(SuperadminRequiredMixin, View):
         return render(request, self.template_name, context)
 
 
-class AccountantDashboardView(AccountantRequiredMixin, View):
+class OfficeAdminDashboardView(AccountantRequiredMixin, View):
     """
-    Accountant Dashboard:
+    Office Administration Dashboard:
     Daily attendance operations hub, hours logged, overtime totals,
     payroll periods awaiting review, and recent roster changes.
     """
@@ -190,6 +191,9 @@ class AccountantDashboardView(AccountantRequiredMixin, View):
             "today": today,
         }
         return render(request, self.template_name, context)
+
+
+AccountantDashboardView = OfficeAdminDashboardView
 
 
 class OwnerDashboardView(RoleRequiredMixin, View):

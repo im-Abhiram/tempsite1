@@ -72,7 +72,7 @@ class PortalLoginForm(AuthenticationForm):
 
 class CreateUserForm(forms.ModelForm):
     """
-    Form for Superadmin to create Accountant or Owner accounts.
+    Form for Superadmin to create Office Administration or Owner accounts.
     Superadmin cannot create another Superadmin through this form
     (only via management command) — enforced both here and in the view.
     """
@@ -89,11 +89,12 @@ class CreateUserForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ["username", "display_name", "email", "role"]
+        fields = ["username", "display_name", "designation", "email", "role"]
         widgets = {
-            "username": forms.TextInput(attrs={"class": "form-control"}),
-            "display_name": forms.TextInput(attrs={"class": "form-control"}),
-            "email": forms.EmailInput(attrs={"class": "form-control"}),
+            "username": forms.TextInput(attrs={"class": "form-control", "placeholder": "Enter username"}),
+            "display_name": forms.TextInput(attrs={"class": "form-control", "placeholder": "Full name"}),
+            "designation": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. Office Administrator, Managing Director"}),
+            "email": forms.EmailInput(attrs={"class": "form-control", "placeholder": "user@example.com"}),
             "role": forms.Select(attrs={"class": "form-select"}),
         }
 
@@ -128,17 +129,18 @@ class CreateUserForm(forms.ModelForm):
 
 class EditUserForm(forms.ModelForm):
     """
-    Edit an existing account. Allows Superadmin to modify username, display name, email,
-    role, and active status.
+    Edit an existing account. Allows Superadmin to modify username, display name,
+    designation, email, role, and active status.
     Users cannot edit their own role or suspend themselves (enforced in view & form).
     """
 
     class Meta:
         model = User
-        fields = ["username", "display_name", "email", "role", "is_active"]
+        fields = ["username", "display_name", "designation", "email", "role", "is_active"]
         widgets = {
             "username": forms.TextInput(attrs={"class": "form-control"}),
             "display_name": forms.TextInput(attrs={"class": "form-control"}),
+            "designation": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. Office Administrator, Managing Director"}),
             "email": forms.EmailInput(attrs={"class": "form-control"}),
             "role": forms.Select(attrs={"class": "form-select"}),
             "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),

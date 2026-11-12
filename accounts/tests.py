@@ -21,31 +21,40 @@ class AccountsModelAndAuthTests(TestCase):
             password="StrongPassword123!",
             role=Role.SUPERADMIN,
             display_name="Master Superadmin",
+            designation="Superadmin",
         )
         self.accountant = User.objects.create_user(
             username="accountant1",
             password="StrongPassword123!",
-            role=Role.ACCOUNTANT,
-            display_name="Lead Accountant",
+            role=Role.OFFICE_ADMIN,
+            display_name="Lead Administrator",
+            designation="Office Administrator",
         )
         self.owner = User.objects.create_user(
             username="owner1",
             password="StrongPassword123!",
             role=Role.OWNER,
             display_name="Business Owner",
+            designation="Managing Director",
         )
         self.settings = CompanySettings.get()
 
     def test_user_role_properties(self):
         self.assertTrue(self.superadmin.is_superadmin)
+        self.assertFalse(self.superadmin.is_office_admin)
         self.assertFalse(self.superadmin.is_accountant)
         self.assertFalse(self.superadmin.is_owner)
+        self.assertEqual(self.superadmin.designation, "Superadmin")
 
+        self.assertTrue(self.accountant.is_office_admin)
         self.assertTrue(self.accountant.is_accountant)
         self.assertFalse(self.accountant.is_superadmin)
+        self.assertEqual(self.accountant.get_role_display(), "Office Administration")
+        self.assertEqual(self.accountant.designation, "Office Administrator")
 
         self.assertTrue(self.owner.is_owner)
         self.assertFalse(self.owner.is_superadmin)
+        self.assertEqual(self.owner.designation, "Managing Director")
 
     def test_successful_login_and_session_cycle(self):
         response = self.client.post(reverse("accounts:login"), {
@@ -124,29 +133,52 @@ class AccountsModelAndAuthTests(TestCase):
         """Superadmin can update the login username of any account or their own."""
         self.client.force_login(self.superadmin)
 
-        # 1. Change accountant's username
+        # 1. Change accountant's username & designation
         edit_url = reverse("accounts:user_edit", kwargs={"pk": self.accountant.pk})
         res = self.client.post(edit_url, {
             "username": "acct_renamed",
             "display_name": "Accountant Renamed",
+            "designation": "Head of Office Administration",
             "email": "acct_new@example.com",
-            "role": Role.ACCOUNTANT,
+            "role": Role.OFFICE_ADMIN,
             "is_active": True,
         })
         self.assertEqual(res.status_code, 302)
         self.accountant.refresh_from_db()
         self.assertEqual(self.accountant.username, "acct_renamed")
+        self.assertEqual(self.accountant.designation, "Head of Office Administration")
 
-        # 2. Change own superadmin username
+        # 2. Change own superadmin username & designation
         self_edit_url = reverse("accounts:user_edit", kwargs={"pk": self.superadmin.pk})
         res2 = self.client.post(self_edit_url, {
             "username": "superadmin_new",
             "display_name": "Chief Superadmin",
+            "designation": "Principal Superadmin",
             "email": "super_new@example.com",
         })
         self.assertEqual(res2.status_code, 302)
         self.superadmin.refresh_from_db()
         self.assertEqual(self.superadmin.username, "superadmin_new")
+        self.assertEqual(self.superadmin.designation, "Principal Superadmin")
+
+    def test_superadmin_can_create_user_with_designation(self):
+        """Superadmin creates an Office Administration user with designation."""
+        self.client.force_login(self.superadmin)
+        res = self.client.post(reverse("accounts:user_create"), {
+            "username": "officeadmin_new",
+            "display_name": "New Admin Officer",
+            "designation": "Executive Assistant",
+            "email": "exec@example.com",
+            "role": Role.OFFICE_ADMIN,
+            "password": "StrongPassword123!",
+            "confirm_password": "StrongPassword123!",
+        })
+        self.assertEqual(res.status_code, 302)
+        new_user = User.objects.get(username="officeadmin_new")
+        self.assertEqual(new_user.role, Role.OFFICE_ADMIN)
+        self.assertEqual(new_user.designation, "Executive Assistant")
+        self.assertTrue(new_user.is_office_admin)
+        self.assertEqual(new_user.get_role_display(), "Office Administration")
 
     def test_inactivity_timeout_and_browser_close_session(self):
         """Verify 60-minute inactivity timeout and browser-close session invalidation."""

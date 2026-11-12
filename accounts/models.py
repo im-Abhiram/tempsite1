@@ -3,9 +3,9 @@ Thamarayyath Employee Portal — Custom User Model & Account Management Models.
 
 Roles
 -----
-SUPERADMIN  — Full system control, account management, configuration.
-ACCOUNTANT  — Employee records, attendance, payroll operations.
-OWNER       — Read-only access to dashboards and reports.
+SUPERADMIN   — Full system control, account management, configuration.
+OFFICE_ADMIN — Employee records, attendance, payroll operations (Office Administration).
+OWNER        — Read-only access to dashboards and reports.
 """
 
 import logging
@@ -20,8 +20,10 @@ logger = logging.getLogger("portal")
 
 class Role(models.TextChoices):
     SUPERADMIN = "SUPERADMIN", "Superadmin"
-    ACCOUNTANT = "ACCOUNTANT", "Accountant"
+    OFFICE_ADMIN = "OFFICE_ADMIN", "Office Administration"
     OWNER = "OWNER", "Owner"
+
+Role.ACCOUNTANT = Role.OFFICE_ADMIN
 
 
 # ─── Custom User Manager ────────────────────────────────────────────────────────
@@ -32,6 +34,8 @@ class CustomUserManager(BaseUserManager):
             raise ValueError("Username is required.")
         if not password:
             raise ValueError("Password is required.")
+        if role == "ACCOUNTANT":
+            role = Role.OFFICE_ADMIN
         if role not in Role.values:
             raise ValueError(f"Role must be one of: {Role.values}")
         user = self.model(username=username.strip().lower(), role=role, **extra_fields)
@@ -68,6 +72,13 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     username = models.CharField(max_length=100, unique=True, db_index=True)
     display_name = models.CharField(max_length=150, blank=True)
+    designation = models.CharField(
+        max_length=150,
+        blank=True,
+        default="",
+        verbose_name="Designation",
+        help_text="Job title or designation for this user account",
+    )
     email = models.EmailField(blank=True)
     role = models.CharField(max_length=20, choices=Role.choices, db_index=True)
 
@@ -104,8 +115,12 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         return self.role == Role.SUPERADMIN
 
     @property
+    def is_office_admin(self):
+        return self.role in (Role.OFFICE_ADMIN, "ACCOUNTANT")
+
+    @property
     def is_accountant(self):
-        return self.role == Role.ACCOUNTANT
+        return self.is_office_admin
 
     @property
     def is_owner(self):

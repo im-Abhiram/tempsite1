@@ -48,17 +48,22 @@
     {% if request.user.is_authenticated %}
     <div class="sidebar-user">
       <div class="user-avatar">
-        {{ request.user.first_name|default:request.user.username|slice:":1"|upper }}
+        {{ request.user.display_name|default:request.user.username|slice:":1"|upper }}
       </div>
       <div class="user-info">
-        <div class="user-name" title="{{ request.user.get_full_name|default:request.user.username }}">
-          {{ request.user.get_full_name|default:request.user.username }}
+        <div class="user-name" title="{{ request.user.display_name|default:request.user.username }}">
+          {{ request.user.display_name|default:request.user.username }}
         </div>
+        {% if request.user.designation %}
+        <div class="user-designation text-truncate" style="font-size: 11px; color: var(--teal-300); opacity: 0.9; margin-top: -2px; margin-bottom: 3px;" title="{{ request.user.designation }}">
+          {{ request.user.designation }}
+        </div>
+        {% endif %}
         <div>
           {% if is_superadmin %}
             <span class="user-role-badge role-superadmin"><i class="bi bi-shield-lock-fill me-1"></i>Superadmin</span>
-          {% elif is_accountant %}
-            <span class="user-role-badge role-accountant"><i class="bi bi-person-badge-fill me-1"></i>Accountant</span>
+          {% elif is_office_admin or is_accountant %}
+            <span class="user-role-badge role-office-admin"><i class="bi bi-person-badge-fill me-1"></i>Office Administration</span>
           {% elif is_owner %}
             <span class="user-role-badge role-owner"><i class="bi bi-eye-fill me-1"></i>Owner</span>
           {% endif %}

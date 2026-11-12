@@ -166,7 +166,7 @@ body {
 }
 
 .role-superadmin { background: rgba(239,68,68,.2); color: #FCA5A5; }
-.role-accountant  { background: rgba(13,148,136,.25); color: var(--teal-300); }
+.role-accountant, .role-office-admin { background: rgba(13,148,136,.25); color: var(--teal-300); }
 .role-owner       { background: rgba(59,130,246,.2); color: #93C5FD; }
 
 /* ── Navigation ───────────────────────────────────────────── */

@@ -52,11 +52,13 @@ def _superadmin_context(request):
     from attendance.models import AttendanceRecord, AttendanceStatus
     from django.utils.timezone import now
     today = now().date()
+    office_admin_count = CustomUser.objects.filter(role__in=[Role.OFFICE_ADMIN, "ACCOUNTANT"]).count()
     return {
         "total_employees": Employee.objects.count(),
         "active_employees": Employee.objects.filter(employment_status=EmploymentStatus.ACTIVE).count(),
         "inactive_employees": Employee.objects.exclude(employment_status=EmploymentStatus.ACTIVE).count(),
-        "accountant_count": CustomUser.objects.filter(role=Role.ACCOUNTANT).count(),
+        "accountant_count": office_admin_count,
+        "office_admin_count": office_admin_count,
         "owner_count": CustomUser.objects.filter(role=Role.OWNER).count(),
         "recent_events": AuditLog.objects.select_related("actor").order_by("-timestamp")[:10],
         "failed_logins": AuditLog.objects.filter(action="LOGIN_FAIL").count(),
@@ -64,7 +66,7 @@ def _superadmin_context(request):
     }
 
 
-def _accountant_context(request):
+def _office_admin_context(request):
     from attendance.models import AttendanceRecord, AttendanceStatus
     from django.utils.timezone import now
     today = now().date()
@@ -78,6 +80,9 @@ def _accountant_context(request):
         "absent_today": active_count - present_today,
         "incomplete_attendance": incomplete,
     }
+
+
+_accountant_context = _office_admin_context
 
 
 def _owner_context(request):

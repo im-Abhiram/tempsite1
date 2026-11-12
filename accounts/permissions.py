@@ -39,7 +39,11 @@ def role_required(*roles):
         def _wrapper(request, *args, **kwargs):
             if not request.user.is_authenticated:
                 return redirect(f"{settings.LOGIN_URL}?next={request.path}")
-            if request.user.role not in roles:
+            effective_roles = set(roles)
+            if Role.OFFICE_ADMIN in effective_roles or "ACCOUNTANT" in effective_roles:
+                effective_roles.add(Role.OFFICE_ADMIN)
+                effective_roles.add("ACCOUNTANT")
+            if request.user.role not in effective_roles:
                 logger.warning(
                     "Permission denied: user=%s role=%s required=%s path=%s",
                     request.user.username, request.user.role, roles, request.path,
@@ -54,17 +58,25 @@ def superadmin_required(view_func):
     return role_required(Role.SUPERADMIN)(view_func)
 
 
+def office_admin_required(view_func):
+    return role_required(Role.OFFICE_ADMIN)(view_func)
+
+
 def accountant_required(view_func):
-    return role_required(Role.ACCOUNTANT)(view_func)
+    return office_admin_required(view_func)
+
+
+def office_admin_or_superadmin(view_func):
+    return role_required(Role.OFFICE_ADMIN, Role.SUPERADMIN)(view_func)
 
 
 def accountant_or_superadmin(view_func):
-    return role_required(Role.ACCOUNTANT, Role.SUPERADMIN)(view_func)
+    return office_admin_or_superadmin(view_func)
 
 
 def not_owner(view_func):
     """Deny access to Owner role (modification endpoints)."""
-    return role_required(Role.SUPERADMIN, Role.ACCOUNTANT)(view_func)
+    return role_required(Role.SUPERADMIN, Role.OFFICE_ADMIN)(view_func)
 
 
 # ─── Class-Based View Mixins ────────────────────────────────────────────────────
@@ -89,7 +101,11 @@ class RoleRequiredMixin(PortalLoginRequiredMixin):
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             return self.handle_no_permission()
-        if self.required_roles and request.user.role not in self.required_roles:
+        effective_roles = set(self.required_roles)
+        if Role.OFFICE_ADMIN in effective_roles or "ACCOUNTANT" in effective_roles:
+            effective_roles.add(Role.OFFICE_ADMIN)
+            effective_roles.add("ACCOUNTANT")
+        if self.required_roles and request.user.role not in effective_roles:
             logger.warning(
                 "Permission denied: user=%s role=%s required=%s path=%s",
                 request.user.username, request.user.role,
@@ -103,17 +119,25 @@ class SuperadminRequiredMixin(RoleRequiredMixin):
     required_roles = [Role.SUPERADMIN]
 
 
-class AccountantRequiredMixin(RoleRequiredMixin):
-    required_roles = [Role.ACCOUNTANT]
+class OfficeAdminRequiredMixin(RoleRequiredMixin):
+    required_roles = [Role.OFFICE_ADMIN]
 
 
-class AccountantOrSuperadminMixin(RoleRequiredMixin):
-    required_roles = [Role.ACCOUNTANT, Role.SUPERADMIN]
+class AccountantRequiredMixin(OfficeAdminRequiredMixin):
+    pass
+
+
+class OfficeAdminOrSuperadminMixin(RoleRequiredMixin):
+    required_roles = [Role.OFFICE_ADMIN, Role.SUPERADMIN]
+
+
+class AccountantOrSuperadminMixin(OfficeAdminOrSuperadminMixin):
+    pass
 
 
 class NotOwnerMixin(RoleRequiredMixin):
-    """Allow Superadmin and Accountant; deny Owner."""
-    required_roles = [Role.SUPERADMIN, Role.ACCOUNTANT]
+    """Allow Superadmin and Office Administration; deny Owner."""
+    required_roles = [Role.SUPERADMIN, Role.OFFICE_ADMIN]
 
 
 class AnyRoleMixin(PortalLoginRequiredMixin):
@@ -134,7 +158,7 @@ def assert_can_view_employee(user, employee):
 
 def assert_can_edit_employee(user, employee):
     """Raise PermissionDenied if user is not allowed to edit employee records."""
-    if user.role not in (Role.SUPERADMIN, Role.ACCOUNTANT):
+    if user.role not in (Role.SUPERADMIN, Role.OFFICE_ADMIN, "ACCOUNTANT"):
         raise PermissionDenied
 
 

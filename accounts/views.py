@@ -12,7 +12,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.views import View
 from django.views.generic import ListView
 from django.contrib import messages
-from django.db import transaction
+from django.db import models, transaction
 from django.utils import timezone
 
 from .forms import (
@@ -158,10 +158,16 @@ class UserListView(SuperadminRequiredMixin, ListView):
         qs = User.objects.all().order_by("role", "username")
         q = self.request.GET.get("q", "").strip()
         if q:
-            qs = qs.filter(username__icontains=q) | qs.filter(display_name__icontains=q)
+            qs = qs.filter(
+                models.Q(username__icontains=q) |
+                models.Q(display_name__icontains=q) |
+                models.Q(designation__icontains=q)
+            )
         role = self.request.GET.get("role", "")
         if role in Role.values:
             qs = qs.filter(role=role)
+        elif role == "ACCOUNTANT":
+            qs = qs.filter(role=Role.OFFICE_ADMIN)
         return qs
 
     def get_context_data(self, **kwargs):
@@ -194,6 +200,7 @@ class CreateUserView(SuperadminRequiredMixin, View):
                     password=form.cleaned_data["password"],
                     role=form.cleaned_data["role"],
                     display_name=form.cleaned_data.get("display_name", ""),
+                    designation=form.cleaned_data.get("designation", ""),
                     email=form.cleaned_data.get("email", ""),
                     created_by=request.user.username,
                 )
