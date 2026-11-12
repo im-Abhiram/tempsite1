@@ -35,10 +35,11 @@ def audit_log(
     extra       : Additional metadata dict (do NOT include passwords or full PII)
     """
     from .models import AuditLog
-    from accounts.middleware import get_current_ip
+    from accounts.middleware import get_current_ip, clean_ip
 
     if ip_address is None:
         ip_address = get_current_ip()
+    ip_address = clean_ip(ip_address)
 
     actor_username = ""
     if actor is not None:

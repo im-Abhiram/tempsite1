@@ -120,14 +120,42 @@ class AccountsModelAndAuthTests(TestCase):
         self.assertEqual(fail_res.status_code, 200)
         self.assertContains(fail_res, "Incorrect answer")
 
-        # 3. Login attempt with CORRECT answer succeeds
+        # 3. Solved CAPTCHA was consumed on failure; fetch a fresh challenge
+        res2 = self.client.get(reverse("accounts:captcha_image"))
+        new_captcha_code = self.client.session.get("login_captcha")
+
+        # 4. Login attempt with fresh CORRECT answer succeeds
         ok_res = self.client.post(reverse("accounts:login"), {
             "username": "accountant1",
             "password": "StrongPassword123!",
-            "captcha": captcha_code,
+            "captcha": new_captcha_code,
         })
         self.assertRedirects(ok_res, reverse("employees:dashboard"))
         self.assertNotIn("login_captcha", self.client.session)
+
+    def test_open_redirect_prevention(self):
+        """Next parameter with external or malformed redirect targets must be safely ignored."""
+        malicious_urls = [
+            "https://evil.com",
+            "//evil.com",
+            "/\\evil.com",
+            "http://attacker.com/dashboard/",
+        ]
+        for url in malicious_urls:
+            res = self.client.post(
+                reverse("accounts:login") + f"?next={url}",
+                {"username": "accountant1", "password": "StrongPassword123!"},
+            )
+            self.assertRedirects(res, reverse("employees:dashboard"))
+
+    def test_clean_ip_and_middleware(self):
+        """clean_ip must normalize valid IPs and reject malformed or malicious strings."""
+        from accounts.middleware import clean_ip
+        self.assertEqual(clean_ip("192.168.1.1"), "192.168.1.1")
+        self.assertEqual(clean_ip("2001:db8::1"), "2001:db8::1")
+        self.assertIsNone(clean_ip("<script>alert(1)</script>"))
+        self.assertIsNone(clean_ip("invalid-ip-address"))
+        self.assertIsNone(clean_ip(""))
 
     def test_superadmin_can_change_username(self):
         """Superadmin can update the login username of any account or their own."""

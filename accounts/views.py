@@ -8,12 +8,15 @@ from django.contrib.auth import login, logout, update_session_auth_hash, get_use
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError, PermissionDenied
 from django.http import HttpResponse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views import View
 from django.views.generic import ListView
 from django.contrib import messages
 from django.db import models, transaction
 from django.utils import timezone
+
+from .middleware import AuditContextMiddleware
 
 from .forms import (
     PortalLoginForm, CreateUserForm, EditUserForm,
@@ -66,7 +69,7 @@ class LoginView(View):
         form = PortalLoginForm(request, data=request.POST)
         if form.is_valid():
             user = form.get_user()
-            # Clear used CAPTCHA from session
+            # Clear used CAPTCHA from session to prevent replay
             request.session.pop("login_captcha", None)
             # Rotate session to prevent fixation
             request.session.cycle_key()
@@ -74,7 +77,7 @@ class LoginView(View):
             # Enforce browser-close session termination & initialize 60-min idle timer
             request.session.set_expiry(0)
             request.session["_last_activity"] = int(timezone.now().timestamp())
-            ip = request.META.get("REMOTE_ADDR", "unknown")
+            ip = AuditContextMiddleware._get_client_ip(request)
             user.record_successful_login(ip_address=ip)
             audit_log(
                 actor=user, action="LOGIN_SUCCESS",
@@ -83,13 +86,20 @@ class LoginView(View):
             )
             logger.info("Successful login: username=%s ip=%s", user.username, ip)
             next_url = request.GET.get("next", "")
-            # Validate next URL to prevent open redirect
-            if next_url and next_url.startswith("/") and not next_url.startswith("//"):
+            # Validate next URL strictly to prevent open redirect
+            if next_url and url_has_allowed_host_and_scheme(
+                url=next_url,
+                allowed_hosts={request.get_host()},
+                require_https=request.is_secure(),
+            ):
                 return redirect(next_url)
             return redirect("employees:dashboard")
 
+        # Invalidate CAPTCHA on failure so it cannot be replayed
+        request.session.pop("login_captcha", None)
+
         # Log failed form submission (invalid username/password or captcha)
-        ip = request.META.get("REMOTE_ADDR", "unknown")
+        ip = AuditContextMiddleware._get_client_ip(request)
         attempted_username = request.POST.get("username", "")
         audit_log(
             actor=None, action="LOGIN_FAIL",

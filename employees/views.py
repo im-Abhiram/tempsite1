@@ -416,17 +416,19 @@ class DocumentServeView(AccountantOrSuperadminMixin, View):
         vault_root = settings.PRIVATE_VAULT_ROOT
         file_path = vault_root / doc.file.name
 
-        if not file_path.exists():
-            raise Http404("Document file not found.")
-
-        # Path traversal check
+        # Path traversal security check
         try:
-            file_path.resolve().relative_to(vault_root.resolve())
-        except ValueError:
+            resolved_file = file_path.resolve()
+            resolved_vault = vault_root.resolve()
+            resolved_file.relative_to(resolved_vault)
+        except (ValueError, RuntimeError):
             raise Http404("Invalid file path.")
 
+        if not resolved_file.exists():
+            raise Http404("Document file not found.")
+
         response = FileResponse(
-            open(file_path, "rb"),
+            resolved_file.open("rb"),
             content_type=doc.detected_content_type or "application/octet-stream",
             as_attachment=True,
             filename=doc.original_filename,

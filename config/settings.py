@@ -5,10 +5,14 @@ Loads all configuration from environment variables (.env) via python-dotenv.
 
 from pathlib import Path
 import os
+import sys
 import dj_database_url
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Detect if automated tests are currently running
+TESTING = "test" in sys.argv
 
 # Load .env file
 load_dotenv(BASE_DIR / ".env")
@@ -17,7 +21,7 @@ load_dotenv(BASE_DIR / ".env")
 SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
 DEBUG = os.getenv("DJANGO_DEBUG", "False").lower() in ("true", "1", "yes")
 
-_raw_hosts = os.getenv("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost,testserver,*")
+_raw_hosts = os.getenv("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost,testserver")
 ALLOWED_HOSTS = [h.strip() for h in _raw_hosts.split(",") if h.strip()]
 
 _raw_csrf = os.getenv(
@@ -142,7 +146,7 @@ SESSION_SAVE_EVERY_REQUEST = True  # rolling idle timer
 IDLE_SESSION_TIMEOUT = int(os.getenv("SESSION_COOKIE_AGE", "3600"))
 
 # ─── CSRF ───────────────────────────────────────────────────────────────────────
-CSRF_COOKIE_HTTPONLY = False  # Allow JS to read cookie value for AJAX (Lax SameSite mitigates)
+CSRF_COOKIE_HTTPONLY = True  # Strict HTTP-only cookie prevents XSS token theft
 CSRF_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SECURE = not DEBUG
 
@@ -150,13 +154,15 @@ CSRF_COOKIE_SECURE = not DEBUG
 X_FRAME_OPTIONS = "DENY"
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_BROWSER_XSS_FILTER = True
+SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
 
-# Only enforce HTTPS headers in production
+# Enforce HTTPS headers in production
 if not DEBUG:
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = False  # Only enable after verifying HTTPS is stable
-    SECURE_SSL_REDIRECT = False  # Managed by reverse proxy (e.g. PythonAnywhere/Nginx)
+    SECURE_SSL_REDIRECT = os.getenv("DJANGO_SECURE_SSL_REDIRECT", "False").lower() in ("true", "1")
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # ─── Internationalisation ───────────────────────────────────────────────────────

@@ -6,6 +6,7 @@ IdleSessionTimeoutMiddleware — Expires sessions after configurable idle period
 AuditContextMiddleware     — Attaches the remote IP to the current thread for audit logging.
 """
 
+import ipaddress
 import logging
 import threading
 import time
@@ -16,6 +17,20 @@ from django.utils import timezone
 
 logger = logging.getLogger("portal")
 _audit_context = threading.local()
+
+
+def clean_ip(ip_str):
+    """
+    Validate and return a normalized IPv4/IPv6 address string, or None if invalid.
+    Guarantees that malformed IP strings from headers never crash GenericIPAddressField.
+    """
+    if not ip_str:
+        return None
+    try:
+        ip_obj = ipaddress.ip_address(str(ip_str).strip())
+        return str(ip_obj)
+    except (ValueError, TypeError, AttributeError):
+        return None
 
 
 def get_current_ip():
@@ -101,5 +116,9 @@ class AuditContextMiddleware:
     def _get_client_ip(request):
         x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
         if x_forwarded_for:
-            return x_forwarded_for.split(",")[0].strip()
-        return request.META.get("REMOTE_ADDR", "127.0.0.1")
+            for part in x_forwarded_for.split(","):
+                valid_ip = clean_ip(part.strip())
+                if valid_ip:
+                    return valid_ip
+        remote_addr = request.META.get("REMOTE_ADDR")
+        return clean_ip(remote_addr) or "127.0.0.1"

@@ -142,6 +142,21 @@ class EmployeeForm(forms.ModelForm):
             max_size = 2 * 1024 * 1024  # 2 MB for photos
             if photo.size > max_size:
                 raise ValidationError("Photo must be smaller than 2 MB.")
+            if hasattr(photo, "name"):
+                ext = os.path.splitext(photo.name)[1].lower()
+                allowed_photo_exts = {".jpg", ".jpeg", ".png", ".webp"}
+                if ext not in allowed_photo_exts:
+                    raise ValidationError(
+                        f"Invalid image format '{ext}'. Allowed formats: JPG, JPEG, PNG, WEBP."
+                    )
+            try:
+                from PIL import Image
+                img = Image.open(photo)
+                img.verify()
+                if hasattr(photo, "seek"):
+                    photo.seek(0)
+            except Exception:
+                raise ValidationError("Uploaded file is not a valid or readable image.")
         return photo
 
     def clean(self):
