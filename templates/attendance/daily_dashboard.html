@@ -153,7 +153,7 @@
               {% if emp.photo %}
                 <img src="{{ emp.photo.url }}" alt="{{ emp.full_name }}" class="rounded-circle object-fit-cover border" style="width: 32px; height: 32px;">
               {% else %}
-                <div class="user-avatar" style="width: 32px; height: 32px; font-size: 12px; background: #1B2E48; color: #5EEAD4; border-radius: 50%; display: grid; place-items: center; font-weight: 700;">
+                <div class="user-avatar" style="width: 32px; height: 32px; font-size: 11px; font-weight: 700;">
                   {{ emp.first_name|slice:":1"|upper }}{{ emp.last_name|slice:":1"|upper }}
                 </div>
               {% endif %}

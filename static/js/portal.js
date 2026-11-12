@@ -1,21 +1,43 @@
 /**
- * Thamarayyath Employee Portal — Global Client Scripts
- * Handles mobile sidebar toggle, alert dismissal, client validations, and UI interactions.
+ * Thamarayyath Employee Portal — Premium Dark SaaS Client Scripts
+ * Handles sidebar collapse/toggle, live digital clock, Chart.js dark-mode styling,
+ * global search keyboard shortcut, alert auto-dismiss, and form submit guards.
  */
 
 document.addEventListener('DOMContentLoaded', function () {
-  // ── 1. Mobile Sidebar Toggle ──────────────────────────────────────────
+  // ── 1. Desktop Sidebar Collapse & Mobile Drawer ───────────────────────
+  const layout = document.querySelector('.portal-layout');
   const sidebar = document.getElementById('portalSidebar');
   const sidebarToggle = document.getElementById('sidebarToggle');
+  const sidebarCollapseBtn = document.getElementById('sidebarCollapseBtn');
 
-  if (sidebar && sidebarToggle) {
-    sidebarToggle.addEventListener('click', function () {
+  // Restore saved collapse state on desktop
+  if (layout && window.innerWidth >= 1024) {
+    if (localStorage.getItem('portal_sidebar_collapsed') === 'true') {
+      layout.classList.add('sidebar-collapsed');
+    }
+  }
+
+  // Desktop collapse toggle
+  if (sidebarCollapseBtn && layout) {
+    sidebarCollapseBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      layout.classList.toggle('sidebar-collapsed');
+      const isCollapsed = layout.classList.contains('sidebar-collapsed');
+      localStorage.setItem('portal_sidebar_collapsed', isCollapsed ? 'true' : 'false');
+    });
+  }
+
+  // Mobile drawer toggle
+  if (sidebarToggle && sidebar) {
+    sidebarToggle.addEventListener('click', function (e) {
+      e.stopPropagation();
       sidebar.classList.toggle('show');
     });
 
-    // Close when clicking outside on small screens
+    // Close mobile drawer when clicking outside
     document.addEventListener('click', function (e) {
-      if (window.innerWidth < 992) {
+      if (window.innerWidth < 1024) {
         if (sidebar.classList.contains('show') && !sidebar.contains(e.target) && !sidebarToggle.contains(e.target)) {
           sidebar.classList.remove('show');
         }
@@ -23,39 +45,93 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // ── 2. Auto Dismiss Flash Alerts ───────────────────────────────────────
+  // ── 2. Live Topbar Digital Clock ──────────────────────────────────────
+  const clockEl = document.getElementById('topbarLiveClock');
+  if (clockEl) {
+    function updateClock() {
+      const now = new Date();
+      const datePart = now.toLocaleDateString('en-IN', {
+        weekday: 'short',
+        day: '2-digit',
+        month: 'short'
+      });
+      const timePart = now.toLocaleTimeString('en-IN', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      });
+      clockEl.textContent = `${datePart} • ${timePart}`;
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+  }
+
+  // ── 3. Keyboard Shortcut for Global Search (Ctrl+K or /) ───────────────
+  const searchInput = document.getElementById('globalSearchInput');
+  if (searchInput) {
+    document.addEventListener('keydown', function (e) {
+      if ((e.ctrlKey && e.key.toLowerCase() === 'k') || (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA')) {
+        e.preventDefault();
+        searchInput.focus();
+        searchInput.select();
+      }
+    });
+  }
+
+  // ── 4. Global Chart.js Dark Theme Configuration ───────────────────────
+  if (window.Chart) {
+    Chart.defaults.color = '#9BAAB5';
+    Chart.defaults.font.family = "'Inter', system-ui, -apple-system, sans-serif";
+    Chart.defaults.font.size = 11.5;
+    Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.06)';
+    
+    // Default plugins configuration
+    if (Chart.defaults.plugins && Chart.defaults.plugins.tooltip) {
+      Chart.defaults.plugins.tooltip.backgroundColor = '#192630';
+      Chart.defaults.plugins.tooltip.titleColor = '#F2F5F7';
+      Chart.defaults.plugins.tooltip.bodyColor = '#9BAAB5';
+      Chart.defaults.plugins.tooltip.borderColor = '#2C3C47';
+      Chart.defaults.plugins.tooltip.borderWidth = 1;
+      Chart.defaults.plugins.tooltip.padding = 10;
+      Chart.defaults.plugins.tooltip.cornerRadius = 8;
+    }
+  }
+
+  // ── 5. Auto-Dismiss Flash Alerts ──────────────────────────────────────
   const flashMessages = document.getElementById('flashMessages');
   if (flashMessages) {
     setTimeout(function () {
       const alerts = flashMessages.querySelectorAll('.alert:not(.alert-danger)');
       alerts.forEach(function (alert) {
-        const bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
-        if (bsAlert) {
-          bsAlert.close();
+        if (window.bootstrap && bootstrap.Alert) {
+          const bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
+          if (bsAlert) bsAlert.close();
         }
       });
     }, 6000);
   }
 
-  // ── 3. Tooltip & Popover Initialization ────────────────────────────────
-  const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-  tooltipTriggerList.map(function (tooltipTriggerEl) {
-    return new bootstrap.Tooltip(tooltipTriggerEl);
-  });
+  // ── 6. Tooltips Initialization ────────────────────────────────────────
+  if (window.bootstrap && bootstrap.Tooltip) {
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+  }
 
-  // ── 4. Form Double-Submit Protection ───────────────────────────────────
+  // ── 7. Form Double-Submit Protection ──────────────────────────────────
   const forms = document.querySelectorAll('form[data-prevent-double-submit="true"], .needs-double-submit-guard');
   forms.forEach(function (form) {
-    form.addEventListener('submit', function (e) {
+    form.addEventListener('submit', function () {
       if (form.checkValidity && !form.checkValidity()) {
-        return; // Let browser HTML5 validation fire
+        return; // HTML5 validation halted submit
       }
       const submitBtn = form.querySelector('button[type="submit"]');
       if (submitBtn) {
         submitBtn.disabled = true;
         const originalText = submitBtn.innerHTML;
         submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Processing...';
-        // Re-enable after 8s in case network interrupted
         setTimeout(function () {
           submitBtn.disabled = false;
           submitBtn.innerHTML = originalText;
@@ -64,7 +140,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  // ── 5. Quick Filter for Tables ─────────────────────────────────────────
+  // ── 8. Table Client-Side Quick Search ─────────────────────────────────
   const tableQuickFilters = document.querySelectorAll('[data-table-filter]');
   tableQuickFilters.forEach(function (input) {
     const tableId = input.getAttribute('data-table-filter');
@@ -81,7 +157,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  // ── 6. Confirm Modal / Buttons ─────────────────────────────────────────
+  // ── 9. Confirmation Action Guard ──────────────────────────────────────
   const confirmButtons = document.querySelectorAll('[data-confirm]');
   confirmButtons.forEach(function (btn) {
     btn.addEventListener('click', function (e) {

@@ -42,7 +42,7 @@ class Command(BaseCommand):
 
         # 1. Company Settings
         settings = CompanySettings.get()
-        settings.company_name = "Thamarayyath Enterprise"
+        settings.company_name = "Thamarayyath"
         settings.currency_symbol = "₹"
         settings.timezone = "Asia/Kolkata"
         settings.standard_daily_hours = Decimal("8.00")

@@ -65,7 +65,7 @@
         <tr>
           <td>
             <div class="d-flex align-items-center gap-3">
-              <div class="user-avatar" style="width: 36px; height: 36px; font-size: 14px; background: #1B2E48; color: #5EEAD4; border: 1.5px solid var(--teal-500); border-radius: 50%; display: grid; place-items: center;">
+              <div class="user-avatar" style="width: 36px; height: 36px; font-size: 13px; font-weight: 700;">
                 {{ u.username|slice:":1"|upper }}
               </div>
               <div>
@@ -79,15 +79,15 @@
           </td>
           <td>
             {% if u.is_superadmin %}
-              <span class="badge" style="background: rgba(239,68,68,.15); color: #DC2626; font-weight: 600; padding: 5px 10px; border-radius: 99px;">
+              <span class="user-role-badge role-superadmin">
                 <i class="bi bi-shield-fill me-1"></i>Superadmin
               </span>
             {% elif u.is_office_admin or u.is_accountant %}
-              <span class="badge" style="background: rgba(13,148,136,.15); color: #0D9488; font-weight: 600; padding: 5px 10px; border-radius: 99px;">
+              <span class="user-role-badge role-office-admin">
                 <i class="bi bi-person-badge-fill me-1"></i>Office Administration
               </span>
             {% else %}
-              <span class="badge" style="background: rgba(59,130,246,.15); color: #2563EB; font-weight: 600; padding: 5px 10px; border-radius: 99px;">
+              <span class="user-role-badge role-owner">
                 <i class="bi bi-eye-fill me-1"></i>Owner
               </span>
             {% endif %}

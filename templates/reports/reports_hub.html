@@ -37,22 +37,22 @@
 
   <!-- Attendance & Timesheet Reports -->
   <div class="col-12 col-md-6 col-xl-4">
-    <div class="card border-0 shadow-sm h-100">
+    <div class="card h-100">
       <div class="card-body p-4">
         <div class="d-flex align-items-center gap-3 mb-3">
-          <div class="rounded-circle bg-teal bg-opacity-10 text-teal p-3 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px; color: #0d9488 !important; background-color: rgba(13,148,136,0.1) !important;">
-            <i class="bi bi-clock-history fs-4"></i>
+          <div class="stat-icon teal" style="width: 52px; height: 52px; font-size: 22px;">
+            <i class="bi bi-clock-history"></i>
           </div>
           <div>
             <h5 class="fw-bold mb-0">Time & Attendance</h5>
-            <small class="text-muted">Punches, Hours & Overtime</small>
+            <small class="text-secondary">Punches, Hours & Overtime</small>
           </div>
         </div>
         <p class="small text-secondary mb-4">
           Daily attendance, weekly cycles, monthly timecards, late punch tracking, and overtime audits.
         </p>
         <div class="d-grid gap-2">
-          <a href="{% url 'reports:attendance_reports' %}" class="btn btn-teal text-white btn-sm d-flex align-items-center justify-content-center gap-2" style="background-color: #0d9488;">
+          <a href="{% url 'reports:attendance_reports' %}" class="btn btn-teal btn-sm d-flex align-items-center justify-content-center gap-2">
             <i class="bi bi-sliders"></i> Open Attendance Reports Hub
           </a>
         </div>
@@ -62,15 +62,15 @@
 
   <!-- Payroll & Compensation Reports -->
   <div class="col-12 col-md-6 col-xl-4">
-    <div class="card border-0 shadow-sm h-100">
+    <div class="card h-100">
       <div class="card-body p-4">
         <div class="d-flex align-items-center gap-3 mb-3">
-          <div class="rounded-circle bg-warning bg-opacity-10 text-warning p-3 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
-            <i class="bi bi-cash-coin fs-4"></i>
+          <div class="stat-icon amber" style="width: 52px; height: 52px; font-size: 22px;">
+            <i class="bi bi-cash-coin"></i>
           </div>
           <div>
             <h5 class="fw-bold mb-0">Payroll & Salary</h5>
-            <small class="text-muted">Cycles & Compensation</small>
+            <small class="text-secondary">Cycles & Compensation</small>
           </div>
         </div>
         <p class="small text-secondary mb-4">
@@ -87,12 +87,12 @@
 </div>
 
 <!-- Instant Export Matrix -->
-<div class="card border-0 shadow-sm">
-  <div class="card-header bg-white py-3 border-0">
+<div class="card">
+  <div class="card-header py-3">
     <h5 class="card-title fw-bold mb-1">
       <i class="bi bi-lightning-charge-fill text-warning me-2"></i>Quick One-Click CSV Exports
     </h5>
-    <p class="text-muted small mb-0">Pre-filtered CSV downloads formatted with formula injection protection.</p>
+    <p class="text-secondary small mb-0">Pre-filtered CSV downloads formatted with formula injection protection.</p>
   </div>
   <div class="card-body p-0">
     <div class="table-responsive">

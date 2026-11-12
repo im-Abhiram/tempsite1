@@ -175,6 +175,38 @@ class OfficeAdminDashboardView(AccountantRequiredMixin, View):
         # Recent employee updates
         recent_employees = Employee.objects.order_by("-updated_at")[:6]
 
+        # Past 14 days attendance trend for Office Admin chart
+        chart_labels = []
+        chart_present = []
+        chart_absent = []
+        chart_leave = []
+
+        start_chart_date = today - datetime.timedelta(days=13)
+        history_records = AttendanceRecord.objects.filter(
+            work_date__gte=start_chart_date, work_date__lte=today
+        ).values("work_date", "status")
+
+        counts_by_date = {}
+        for r in history_records:
+            d = r["work_date"]
+            if d not in counts_by_date:
+                counts_by_date[d] = {"present": 0, "absent": 0, "leave": 0}
+            st = r["status"]
+            if st in (AttendanceStatus.PRESENT, AttendanceStatus.HALF_DAY):
+                counts_by_date[d]["present"] += 1
+            elif st == AttendanceStatus.ABSENT:
+                counts_by_date[d]["absent"] += 1
+            elif st in (AttendanceStatus.PAID_LEAVE, AttendanceStatus.UNPAID_LEAVE):
+                counts_by_date[d]["leave"] += 1
+
+        for i in range(14):
+            day = start_chart_date + datetime.timedelta(days=i)
+            chart_labels.append(day.strftime("%d %b"))
+            day_data = counts_by_date.get(day, {"present": 0, "absent": 0, "leave": 0})
+            chart_present.append(day_data["present"])
+            chart_absent.append(day_data["absent"])
+            chart_leave.append(day_data["leave"])
+
         context = {
             "total_active": total_active,
             "present_today": present_today,
@@ -188,6 +220,10 @@ class OfficeAdminDashboardView(AccountantRequiredMixin, View):
             "overtime_30d": overtime_30d,
             "payroll_pending": payroll_pending,
             "recent_employees": recent_employees,
+            "chart_labels": json.dumps(chart_labels),
+            "chart_present": json.dumps(chart_present),
+            "chart_absent": json.dumps(chart_absent),
+            "chart_leave": json.dumps(chart_leave),
             "today": today,
         }
         return render(request, self.template_name, context)

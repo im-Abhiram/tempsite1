@@ -5,7 +5,49 @@
 {% block breadcrumbs %}Dashboard &bull; Superadmin Overview{% endblock %}
 
 {% block content %}
-<!-- Top Metrics Row -->
+<!-- ── 1. Featured Overview Hero Banner ────────────────────────────── -->
+<div class="dashboard-hero">
+  <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+    <div>
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <span class="badge" style="background: var(--accent-teal-soft); color: var(--accent-teal); border: 1px solid rgba(53, 198, 179, 0.3);">
+          <i class="bi bi-shield-check me-1"></i> System Operational &bull; Live
+        </span>
+        <span class="text-secondary small">Server: {{ today|date:"l, d F Y" }}</span>
+      </div>
+      <h2 class="hero-title">Welcome back, {{ request.user.display_name|default:request.user.username }}</h2>
+      <p class="hero-sub">Here is your comprehensive enterprise workforce summary, real-time attendance ledger, and system security posture.</p>
+    </div>
+
+    <div class="d-flex flex-wrap align-items-center gap-2">
+      <div class="hero-stats-pill">
+        <div class="stat-icon teal" style="width: 36px; height: 36px; font-size: 16px;">
+          <i class="bi bi-person-check-fill"></i>
+        </div>
+        <div>
+          <div class="text-secondary" style="font-size: 10.5px; text-transform: uppercase; font-weight: 600;">Turnout Today</div>
+          <div class="fw-bold" style="font-size: 15px; color: var(--text-primary);">{{ today_present }} Present</div>
+        </div>
+      </div>
+
+      <div class="hero-stats-pill">
+        <div class="stat-icon blue" style="width: 36px; height: 36px; font-size: 16px;">
+          <i class="bi bi-hdd-network"></i>
+        </div>
+        <div>
+          <div class="text-secondary" style="font-size: 10.5px; text-transform: uppercase; font-weight: 600;">Storage Used</div>
+          <div class="fw-bold" style="font-size: 15px; color: var(--text-primary);">{{ storage.total_size_display }}</div>
+        </div>
+      </div>
+
+      <a href="{% url 'employees:employee_create' %}" class="btn btn-teal">
+        <i class="bi bi-person-plus-fill"></i> Onboard Employee
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ── 2. Top Metrics Cards ────────────────────────────────────────── -->
 <div class="row g-3 mb-4">
   <div class="col-xl-3 col-md-6">
     <div class="stat-card teal">
@@ -15,7 +57,7 @@
       <div>
         <p class="stat-label">Total Workforce</p>
         <h3 class="stat-value">{{ total_employees }}</h3>
-        <p class="stat-sub"><span class="text-success fw-semibold">{{ active_employees }} Active</span> &bull; {{ inactive_employees }} Inactive</p>
+        <p class="stat-sub"><span class="text-teal fw-semibold">{{ active_employees }} Active</span> &bull; {{ inactive_employees }} Inactive</p>
       </div>
     </div>
   </div>
@@ -34,112 +76,67 @@
   </div>
 
   <div class="col-xl-3 col-md-6">
-    <div class="stat-card navy">
-      <div class="stat-icon navy">
+    <div class="stat-card blue">
+      <div class="stat-icon blue">
         <i class="bi bi-person-badge-fill"></i>
       </div>
       <div>
         <p class="stat-label">System Operators</p>
         <h3 class="stat-value">{{ accountant_count|add:owner_count|add:1 }}</h3>
-        <p class="stat-sub">{{ accountant_count }} Office Administration &bull; {{ owner_count }} Owners</p>
+        <p class="stat-sub">{{ accountant_count }} Office Admin &bull; {{ owner_count }} Owners</p>
       </div>
     </div>
   </div>
 
   <div class="col-xl-3 col-md-6">
-    <div class="card-portal p-3 h-100">
-      <div class="d-flex align-items-center gap-3">
-        <div class="stat-icon blue" style="width: 44px; height: 44px; font-size: 20px;">
-          <i class="bi bi-hdd-network"></i>
-        </div>
-        <div>
-          <p class="stat-label mb-0">Storage Footprint</p>
-          <h4 class="mb-0 fw-bold">{{ storage.total_size_display }}</h4>
-          <small class="text-muted">DB: {{ storage.db_size_display }} &bull; Media: {{ storage.media_size_display }}</small>
-        </div>
+    <div class="stat-card amber">
+      <div class="stat-icon amber">
+        <i class="bi bi-database-check"></i>
+      </div>
+      <div>
+        <p class="stat-label">Storage Footprint</p>
+        <h3 class="stat-value">{{ storage.total_size_display }}</h3>
+        <p class="stat-sub">DB: {{ storage.db_size_display }} &bull; Media: {{ storage.media_size_display }}</p>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Attendance Chart & Quick Actions Row -->
+<!-- ── 3. Main Content & Right-Side Intelligence Panel ────────────── -->
 <div class="row g-4 mb-4">
-  <!-- Chart.js 14-Day Attendance Trend -->
-  <div class="col-lg-8">
-    <div class="card-portal h-100">
+  <!-- Left Main Column (Charts & Activities) -->
+  <div class="col-xl-8 col-lg-7 d-flex flex-column gap-4">
+    <!-- Chart.js 14-Day Attendance Trend -->
+    <div class="card-portal">
       <div class="card-header-portal d-flex justify-content-between align-items-center">
         <div class="d-flex align-items-center gap-2">
           <i class="bi bi-graph-up text-teal"></i>
           <h6 class="mb-0 fw-bold">14-Day Workforce Attendance Trend</h6>
         </div>
-        <small class="text-muted">Presents, Absences & Leaves</small>
+        <span class="badge" style="background: var(--bg-secondary); color: var(--text-secondary); border: 1px solid var(--border);">
+          Turnout Dynamics
+        </span>
       </div>
       <div class="card-body-portal p-3">
         <canvas id="superadminAttendanceChart" height="110"></canvas>
       </div>
     </div>
-  </div>
 
-  <!-- Fast Action Hub -->
-  <div class="col-lg-4">
-    <div class="card-portal h-100">
-      <div class="card-header-portal">
-        <i class="bi bi-lightning-charge-fill text-warning"></i>
-        <h6 class="mb-0 fw-bold">Administrative Actions</h6>
-      </div>
-      <div class="card-body-portal d-flex flex-column gap-2 p-3">
-        <a href="{% url 'employees:employee_create' %}" class="btn btn-outline-primary text-start d-flex align-items-center gap-3 p-2" style="border-radius: 8px;">
-          <i class="bi bi-person-plus fs-4 text-teal"></i>
-          <div>
-            <div class="fw-bold" style="font-size: 13px;">Register Employee</div>
-            <small class="text-muted">Onboard personnel & salary</small>
-          </div>
-        </a>
-
-        <a href="{% url 'accounts:user_create' %}" class="btn btn-outline-secondary text-start d-flex align-items-center gap-3 p-2" style="border-radius: 8px;">
-          <i class="bi bi-person-gear fs-4 text-primary"></i>
-          <div>
-            <div class="fw-bold" style="font-size: 13px;">Create Operator Account</div>
-            <small class="text-muted">Office Administration or Owner access</small>
-          </div>
-        </a>
-
-        <a href="{% url 'core:backup_dashboard' %}" class="btn btn-outline-secondary text-start d-flex align-items-center gap-3 p-2" style="border-radius: 8px;">
-          <i class="bi bi-database-down fs-4 text-success"></i>
-          <div>
-            <div class="fw-bold" style="font-size: 13px;">Download Backups</div>
-            <small class="text-muted">SQLite & CSV snapshots</small>
-          </div>
-        </a>
-
-        <a href="{% url 'accounts:company_settings' %}" class="btn btn-outline-secondary text-start d-flex align-items-center gap-3 p-2" style="border-radius: 8px;">
-          <i class="bi bi-sliders fs-4 text-navy"></i>
-          <div>
-            <div class="fw-bold" style="font-size: 13px;">Enterprise Settings</div>
-            <small class="text-muted">Overtime multiplier & cycle</small>
-          </div>
-        </a>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Latest Payroll Activity & Recent Audit Events Row -->
-<div class="row g-4 mb-4">
-  <!-- Latest Payroll Cycles -->
-  <div class="col-lg-5">
-    <div class="card-portal h-100">
+    <!-- Latest Payroll Activity -->
+    <div class="card-portal">
       <div class="card-header-portal d-flex justify-content-between align-items-center">
         <div class="d-flex align-items-center gap-2">
-          <i class="bi bi-cash-stack text-warning"></i>
+          <i class="bi bi-cash-stack text-amber"></i>
           <h6 class="mb-0 fw-bold">Latest Payroll Activity</h6>
         </div>
-        <a href="{% url 'payroll:period_list' %}" class="btn btn-sm btn-link text-decoration-none" style="font-size: 12px;">View All &rarr;</a>
+        <a href="{% url 'payroll:period_list' %}" class="btn btn-sm btn-outline-secondary" style="font-size: 11.5px; padding: 3px 10px;">
+          View All &rarr;
+        </a>
       </div>
       <div class="card-body-portal p-0">
-        <div class="table-responsive">
+        <div class="table-responsive border-0">
           <table class="table table-hover align-middle mb-0" style="font-size: 13px;">
-            <thead class="table-light">
+            <thead>
               <tr>
                 <th>Period</th>
                 <th>Cycle</th>
@@ -150,17 +147,17 @@
               {% for p in latest_payroll %}
               <tr>
                 <td>
-                  <div class="fw-semibold">{{ p.start_date|date:"d M" }} – {{ p.end_date|date:"d M" }}</div>
-                  <small class="text-muted">{{ p.duration_days }} days</small>
+                  <div class="fw-semibold text-primary">{{ p.start_date|date:"d M" }} – {{ p.end_date|date:"d M Y" }}</div>
+                  <small class="text-muted">{{ p.duration_days }} calendar days</small>
                 </td>
-                <td>{{ p.get_cycle_type_display }}</td>
+                <td><span class="badge" style="background: var(--bg-secondary); color: var(--text-secondary); border: 1px solid var(--border);">{{ p.get_cycle_type_display }}</span></td>
                 <td>
                   {% if p.status == 'FINALIZED' %}
-                    <span class="badge bg-success-subtle text-success border border-success-subtle">Finalized</span>
+                    <span class="badge bg-success-subtle border border-success-subtle">Finalized</span>
                   {% elif p.status == 'REVIEWED' %}
-                    <span class="badge bg-info-subtle text-info border border-info-subtle">Reviewed</span>
+                    <span class="badge bg-info-subtle border border-info-subtle">Reviewed</span>
                   {% else %}
-                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle">Draft</span>
+                    <span class="badge bg-warning-subtle border border-warning-subtle">Draft</span>
                   {% endif %}
                 </td>
               </tr>
@@ -176,51 +173,94 @@
     </div>
   </div>
 
-  <!-- Recent Audit Events -->
-  <div class="col-lg-7">
-    <div class="card-portal h-100">
-      <div class="card-header-portal d-flex justify-content-between align-items-center">
-        <div class="d-flex align-items-center gap-2">
-          <i class="bi bi-journal-text text-teal"></i>
-          <h6 class="mb-0 fw-bold">Recent System Audit Trail</h6>
-        </div>
-        <a href="{% url 'audit:log_list' %}" class="btn btn-sm btn-link text-decoration-none" style="font-size: 12px;">View Full Log &rarr;</a>
+  <!-- Right-Side Dedicated SaaS Panel -->
+  <div class="col-xl-4 col-lg-5 d-flex flex-column gap-4">
+    <!-- Fast Action Hub Panel -->
+    <div class="right-panel-card">
+      <div class="right-panel-header">
+        <h6 class="right-panel-title">
+          <i class="bi bi-lightning-charge-fill text-amber"></i> Administrative Hub
+        </h6>
+        <span class="badge" style="background: var(--accent-amber-soft); color: var(--accent-amber);">Shortcuts</span>
       </div>
-      <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0" style="font-size: 12.5px;">
-          <thead class="table-light">
-            <tr>
-              <th>Timestamp</th>
-              <th>Action</th>
-              <th>Actor</th>
-              <th>IP Address</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for evt in recent_events %}
-            <tr>
-              <td class="text-muted small" style="white-space: nowrap;">
-                {{ evt.timestamp|date:"d M, H:i" }}
-              </td>
-              <td>
-                <span class="badge bg-light text-dark border font-monospace">{{ evt.action }}</span>
-              </td>
-              <td>
-                {% if evt.actor %}
-                  <span class="fw-semibold text-navy">{{ evt.actor.username }}</span>
-                {% else %}
-                  <span class="text-muted fst-italic">{{ evt.actor_username|default:"System" }}</span>
-                {% endif %}
-              </td>
-              <td class="text-muted small">{{ evt.ip_address }}</td>
-            </tr>
-            {% empty %}
-            <tr>
-              <td colspan="4" class="text-center py-4 text-muted">No audit events recorded yet.</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+
+      <div class="d-flex flex-column gap-2">
+        <a href="{% url 'employees:employee_create' %}" class="btn btn-secondary text-start d-flex align-items-center gap-3 p-2 w-100" style="border-radius: 10px;">
+          <div class="stat-icon teal" style="width: 36px; height: 36px; font-size: 16px;">
+            <i class="bi bi-person-plus"></i>
+          </div>
+          <div>
+            <div class="fw-bold" style="font-size: 13px; color: var(--text-primary);">Register Employee</div>
+            <small class="text-muted">Onboard personnel & assign salary</small>
+          </div>
+        </a>
+
+        <a href="{% url 'accounts:user_create' %}" class="btn btn-secondary text-start d-flex align-items-center gap-3 p-2 w-100" style="border-radius: 10px;">
+          <div class="stat-icon blue" style="width: 36px; height: 36px; font-size: 16px;">
+            <i class="bi bi-person-gear"></i>
+          </div>
+          <div>
+            <div class="fw-bold" style="font-size: 13px; color: var(--text-primary);">Create User Account</div>
+            <small class="text-muted">Office Admin or Owner credentials</small>
+          </div>
+        </a>
+
+        <a href="{% url 'core:backup_dashboard' %}" class="btn btn-secondary text-start d-flex align-items-center gap-3 p-2 w-100" style="border-radius: 10px;">
+          <div class="stat-icon green" style="width: 36px; height: 36px; font-size: 16px;">
+            <i class="bi bi-database-down"></i>
+          </div>
+          <div>
+            <div class="fw-bold" style="font-size: 13px; color: var(--text-primary);">Download Backups</div>
+            <small class="text-muted">Live SQLite & CSV snapshots</small>
+          </div>
+        </a>
+
+        <a href="{% url 'accounts:company_settings' %}" class="btn btn-secondary text-start d-flex align-items-center gap-3 p-2 w-100" style="border-radius: 10px;">
+          <div class="stat-icon amber" style="width: 36px; height: 36px; font-size: 16px;">
+            <i class="bi bi-sliders"></i>
+          </div>
+          <div>
+            <div class="fw-bold" style="font-size: 13px; color: var(--text-primary);">Enterprise Settings</div>
+            <small class="text-muted">Overtime multiplier, shifts & cycle</small>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <!-- Recent Audit Activity Feed -->
+    <div class="right-panel-card">
+      <div class="right-panel-header">
+        <h6 class="right-panel-title">
+          <i class="bi bi-journal-text text-teal"></i> Audit Trail
+        </h6>
+        <a href="{% url 'audit:log_list' %}" class="text-teal text-decoration-none small" style="font-size: 11.5px;">View All &rarr;</a>
+      </div>
+
+      <div class="d-flex flex-column gap-3">
+        {% for evt in recent_events|slice:":6" %}
+        <div class="d-flex align-items-start gap-2 pb-2 border-bottom" style="border-color: var(--border) !important;">
+          <div class="stat-icon teal mt-1" style="width: 28px; height: 28px; font-size: 12px; border-radius: 6px;">
+            <i class="bi bi-activity"></i>
+          </div>
+          <div class="flex-grow-1 overflow-hidden">
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="badge font-monospace" style="background: var(--bg-secondary); color: var(--accent-teal); font-size: 10px; border: 1px solid var(--border);">
+                {{ evt.action }}
+              </span>
+              <span class="text-muted" style="font-size: 10.5px;">{{ evt.timestamp|date:"H:i" }}</span>
+            </div>
+            <div class="text-secondary small mt-1 text-truncate">
+              {% if evt.actor %}
+                <strong class="text-primary">{{ evt.actor.username }}</strong> &bull; IP: {{ evt.ip_address|default:"local" }}
+              {% else %}
+                <span class="text-muted fst-italic">{{ evt.actor_username|default:"System" }}</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% empty %}
+        <p class="text-muted small text-center my-3">No audit events recorded yet.</p>
+        {% endfor %}
       </div>
     </div>
   </div>
@@ -245,31 +285,62 @@ document.addEventListener("DOMContentLoaded", function() {
           {
             label: "Present",
             data: presentData,
-            backgroundColor: "#0d9488",
-            borderRadius: 4,
+            backgroundColor: "#35C6B3",
+            borderRadius: 5,
+            borderSkipped: false,
           },
           {
             label: "Leave",
             data: leaveData,
-            backgroundColor: "#f59e0b",
-            borderRadius: 4,
+            backgroundColor: "#E9B872",
+            borderRadius: 5,
+            borderSkipped: false,
           },
           {
             label: "Absent",
             data: absentData,
-            backgroundColor: "#ef4444",
-            borderRadius: 4,
+            backgroundColor: "#EF7378",
+            borderRadius: 5,
+            borderSkipped: false,
           }
         ]
       },
       options: {
         responsive: true,
+        maintainAspectRatio: false,
         plugins: {
-          legend: { position: "top", labels: { boxWidth: 12, font: { size: 12 } } },
+          legend: {
+            position: "top",
+            labels: {
+              boxWidth: 10,
+              boxHeight: 10,
+              color: "#9BAAB5",
+              font: { size: 11.5, family: "'Inter', sans-serif" },
+              padding: 14
+            }
+          },
+          tooltip: {
+            backgroundColor: "#192630",
+            titleColor: "#F2F5F7",
+            bodyColor: "#9BAAB5",
+            borderColor: "#2C3C47",
+            borderWidth: 1,
+            cornerRadius: 8,
+            padding: 10
+          }
         },
         scales: {
-          x: { stacked: true, grid: { display: false } },
-          y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } }
+          x: {
+            stacked: true,
+            grid: { display: false },
+            ticks: { color: "#9BAAB5", font: { size: 11 } }
+          },
+          y: {
+            stacked: true,
+            beginAtZero: true,
+            grid: { color: "rgba(255, 255, 255, 0.05)" },
+            ticks: { precision: 0, color: "#9BAAB5", font: { size: 11 } }
+          }
         }
       }
     });

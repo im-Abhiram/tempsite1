@@ -13,7 +13,7 @@
         {% if employee.photo %}
           <img src="{{ employee.photo.url }}" alt="{{ employee.full_name }}" class="rounded-circle object-fit-cover border shadow-sm" style="width: 80px; height: 80px;">
         {% else %}
-          <div class="user-avatar" style="width: 80px; height: 80px; font-size: 28px; background: #1B2E48; color: #5EEAD4; border: 2.5px solid var(--teal-500); border-radius: 50%; display: grid; place-items: center; font-weight: 700;">
+          <div class="user-avatar" style="width: 80px; height: 80px; font-size: 28px; font-weight: 700; border-width: 2.5px;">
             {{ employee.first_name|slice:":1"|upper }}{{ employee.last_name|slice:":1"|upper }}
           </div>
         {% endif %}

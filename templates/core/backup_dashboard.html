@@ -13,13 +13,13 @@
 <div class="row g-4 mb-4">
   <!-- Storage Overview Cards -->
   <div class="col-12 col-md-6 col-xl-3">
-    <div class="card border-0 shadow-sm h-100 p-3">
+    <div class="card h-100 p-3">
       <div class="d-flex align-items-center gap-3">
-        <div class="rounded-circle bg-primary bg-opacity-10 text-primary p-3 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
-          <i class="bi bi-database-fill fs-4"></i>
+        <div class="stat-icon blue" style="width: 52px; height: 52px; font-size: 22px;">
+          <i class="bi bi-database-fill"></i>
         </div>
         <div>
-          <span class="text-muted small fw-medium text-uppercase">SQLite Database</span>
+          <span class="text-secondary small fw-medium text-uppercase">SQLite Database</span>
           <h4 class="mb-0 fw-bold">{{ storage.db_size_display }}</h4>
         </div>
       </div>
@@ -27,13 +27,13 @@
   </div>
 
   <div class="col-12 col-md-6 col-xl-3">
-    <div class="card border-0 shadow-sm h-100 p-3">
+    <div class="card h-100 p-3">
       <div class="d-flex align-items-center gap-3">
-        <div class="rounded-circle bg-teal bg-opacity-10 text-teal p-3 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px; color: #0d9488 !important; background-color: rgba(13,148,136,0.1) !important;">
-          <i class="bi bi-folder2-open fs-4"></i>
+        <div class="stat-icon teal" style="width: 52px; height: 52px; font-size: 22px;">
+          <i class="bi bi-folder2-open"></i>
         </div>
         <div>
-          <span class="text-muted small fw-medium text-uppercase">Media & Documents</span>
+          <span class="text-secondary small fw-medium text-uppercase">Media & Documents</span>
           <h4 class="mb-0 fw-bold">{{ storage.media_size_display }}</h4>
         </div>
       </div>
@@ -41,13 +41,13 @@
   </div>
 
   <div class="col-12 col-md-6 col-xl-3">
-    <div class="card border-0 shadow-sm h-100 p-3">
+    <div class="card h-100 p-3">
       <div class="d-flex align-items-center gap-3">
-        <div class="rounded-circle bg-warning bg-opacity-10 text-warning p-3 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
-          <i class="bi bi-journal-text fs-4"></i>
+        <div class="stat-icon amber" style="width: 52px; height: 52px; font-size: 22px;">
+          <i class="bi bi-journal-text"></i>
         </div>
         <div>
-          <span class="text-muted small fw-medium text-uppercase">Application Logs</span>
+          <span class="text-secondary small fw-medium text-uppercase">Application Logs</span>
           <h4 class="mb-0 fw-bold">{{ storage.logs_size_display }}</h4>
         </div>
       </div>
@@ -55,14 +55,14 @@
   </div>
 
   <div class="col-12 col-md-6 col-xl-3">
-    <div class="card border-0 shadow-sm h-100 p-3">
+    <div class="card h-100 p-3">
       <div class="d-flex align-items-center gap-3">
-        <div class="rounded-circle bg-dark bg-opacity-10 text-dark p-3 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
-          <i class="bi bi-hdd-network-fill fs-4"></i>
+        <div class="stat-icon green" style="width: 52px; height: 52px; font-size: 22px;">
+          <i class="bi bi-hdd-network-fill"></i>
         </div>
         <div>
-          <span class="text-muted small fw-medium text-uppercase">Total Disk Footprint</span>
-          <h4 class="mb-0 fw-bold text-dark">{{ storage.total_size_display }}</h4>
+          <span class="text-secondary small fw-medium text-uppercase">Total Disk Footprint</span>
+          <h4 class="mb-0 fw-bold">{{ storage.total_size_display }}</h4>
         </div>
       </div>
     </div>
@@ -72,12 +72,12 @@
 <!-- Important Notice & Backup Downloads -->
 <div class="row g-4 mb-4">
   <div class="col-12 col-lg-7">
-    <div class="card border-0 shadow-sm h-100">
-      <div class="card-header bg-white py-3 border-0">
+    <div class="card h-100">
+      <div class="card-header py-3">
         <h5 class="card-title fw-bold mb-1">
-          <i class="bi bi-cloud-arrow-down-fill text-teal me-2" style="color: #0d9488;"></i>Download System Backups
+          <i class="bi bi-cloud-arrow-down-fill text-teal me-2"></i>Download System Backups
         </h5>
-        <p class="text-muted small mb-0">Generate live, consistent data backups without taking the portal offline.</p>
+        <p class="text-secondary small mb-0">Generate live, consistent data backups without taking the portal offline.</p>
       </div>
       <div class="card-body pt-0">
         <div class="list-group list-group-flush">
@@ -151,11 +151,11 @@
 
   <!-- Offsite Backup Strategy & Storage Advisory -->
   <div class="col-12 col-lg-5">
-    <div class="card border-0 shadow-sm h-100 bg-light">
+    <div class="card h-100">
       <div class="card-body p-4">
         <div class="d-flex align-items-center gap-2 mb-3 text-warning">
           <i class="bi bi-shield-exclamation fs-3"></i>
-          <h5 class="fw-bold mb-0 text-dark">Data Protection Strategy</h5>
+          <h5 class="fw-bold mb-0 text-primary">Data Protection Strategy</h5>
         </div>
         <p class="small text-secondary mb-3">
           <strong>PythonAnywhere Free Account Notice:</strong> Free hosting does not provide automatic off-site snapshots. Storing backups solely inside your PythonAnywhere home directory does <em>not</em> safeguard against account inactivity or unexpected loss.
@@ -164,7 +164,7 @@
           <i class="bi bi-info-circle-fill me-1"></i>
           <strong>Recommended Routine:</strong> Download the <code>.sqlite3</code> database backup weekly and store it in an encrypted off-site vault or company physical backup drive.
         </div>
-        <h6 class="fw-bold text-dark mb-2">Restoration Guide:</h6>
+        <h6 class="fw-bold text-primary mb-2">Restoration Guide:</h6>
         <ol class="small text-secondary ps-3 mb-0">
           <li class="mb-1">Log in to PythonAnywhere Web Console or stop the WSGI process.</li>
           <li class="mb-1">Navigate to the portal project directory: <code>cd ~/thamarayyath</code></li>

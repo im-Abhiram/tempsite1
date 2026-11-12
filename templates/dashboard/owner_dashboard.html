@@ -1,20 +1,53 @@
 {% extends "base.html" %}
 
 {% block title %}Executive Summary &bull; {{ COMPANY_NAME }}{% endblock %}
-{% block page_title %}Executive Summary Dashboard{% endblock %}
+{% block page_title %}Executive Business Intelligence{% endblock %}
 {% block breadcrumbs %}Dashboard &bull; Owner Executive Overview{% endblock %}
 
 {% block content %}
-<!-- Read-Only Banner -->
-<div class="alert alert-light border shadow-sm py-2 px-3 mb-4 d-flex align-items-center justify-content-between" style="border-left: 4px solid #0d9488 !important;">
-  <div class="d-flex align-items-center gap-2 small text-secondary">
-    <i class="bi bi-shield-check text-teal fs-5" style="color: #0d9488;"></i>
-    <span><strong>Executive Read-Only Mode:</strong> High-level workforce intelligence, attendance trends, and finalized payroll summaries.</span>
+<!-- ── 1. Featured Overview Hero Banner ────────────────────────────── -->
+<div class="dashboard-hero">
+  <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+    <div>
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <span class="badge" style="background: var(--accent-blue-soft); color: var(--accent-blue); border: 1px solid rgba(117, 167, 232, 0.3);">
+          <i class="bi bi-eye-fill me-1"></i> Executive Read-Only Access
+        </span>
+        <span class="text-secondary small">{{ today|date:"l, d F Y" }}</span>
+      </div>
+      <h2 class="hero-title">Executive Summary Dashboard</h2>
+      <p class="hero-sub">High-level workforce intelligence, attendance turnout dynamics, monthly labor hours, and finalized payroll disbursements.</p>
+    </div>
+
+    <div class="d-flex flex-wrap align-items-center gap-2">
+      <div class="hero-stats-pill">
+        <div class="stat-icon blue" style="width: 36px; height: 36px; font-size: 16px;">
+          <i class="bi bi-pie-chart-fill"></i>
+        </div>
+        <div>
+          <div class="text-secondary" style="font-size: 10.5px; text-transform: uppercase; font-weight: 600;">Turnout Rate</div>
+          <div class="fw-bold" style="font-size: 15px; color: var(--text-primary);">{{ attendance_percentage }}% Today</div>
+        </div>
+      </div>
+
+      <div class="hero-stats-pill">
+        <div class="stat-icon amber" style="width: 36px; height: 36px; font-size: 16px;">
+          <i class="bi bi-clock-history"></i>
+        </div>
+        <div>
+          <div class="text-secondary" style="font-size: 10.5px; text-transform: uppercase; font-weight: 600;">Monthly Hours</div>
+          <div class="fw-bold" style="font-size: 15px; color: var(--text-primary);">{{ total_working_hours_month|floatformat:1 }}h</div>
+        </div>
+      </div>
+
+      <a href="{% url 'reports:hub' %}" class="btn btn-teal">
+        <i class="bi bi-file-earmark-bar-graph"></i> Reports Hub
+      </a>
+    </div>
   </div>
-  <span class="badge bg-light text-dark border">Owner Access</span>
 </div>
 
-<!-- Top Metrics Row -->
+<!-- ── 2. Top Metrics Cards ────────────────────────────────────────── -->
 <div class="row g-3 mb-4">
   <div class="col-xl-3 col-md-6">
     <div class="stat-card teal">
@@ -37,7 +70,7 @@
       <div>
         <p class="stat-label">Present Today</p>
         <h3 class="stat-value">{{ present_today }}</h3>
-        <p class="stat-sub">Verified Punches</p>
+        <p class="stat-sub">Verified Daily Punches</p>
       </div>
     </div>
   </div>
@@ -56,132 +89,137 @@
   </div>
 
   <div class="col-xl-3 col-md-6">
-    <div class="stat-card navy">
-      <div class="stat-icon navy">
+    <div class="stat-card amber">
+      <div class="stat-icon amber">
         <i class="bi bi-clock-history"></i>
       </div>
       <div>
         <p class="stat-label">Total Monthly Hours</p>
         <h3 class="stat-value">{{ total_working_hours_month|floatformat:1 }}</h3>
-        <p class="stat-sub">{{ total_ot_month|floatformat:1 }} Overtime Hours</p>
+        <p class="stat-sub">{{ total_ot_month|floatformat:1 }} OT Hours Logged</p>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Monthly Attendance Trend Chart & Latest Payroll Row -->
+<!-- ── 3. Main Trends & Dedicated Right Panel ──────────────────────── -->
 <div class="row g-4 mb-4">
-  <!-- Chart.js 30-Day Monthly Attendance Trend -->
-  <div class="col-lg-8">
-    <div class="card-portal h-100">
+  <!-- Left Main Column (Monthly Attendance Trend & Directory Shortcuts) -->
+  <div class="col-xl-8 col-lg-7 d-flex flex-column gap-4">
+    <!-- Chart.js 30-Day Monthly Attendance Trend -->
+    <div class="card-portal">
       <div class="card-header-portal d-flex justify-content-between align-items-center">
         <div class="d-flex align-items-center gap-2">
-          <i class="bi bi-graph-up-arrow text-teal" style="color: #0d9488;"></i>
-          <h6 class="mb-0 fw-bold">30-Day Monthly Attendance Turnout Trend</h6>
+          <i class="bi bi-graph-up-arrow text-teal"></i>
+          <h6 class="mb-0 fw-bold">30-Day Attendance Turnout Trend</h6>
         </div>
-        <small class="text-muted">Turnout Dynamics</small>
+        <span class="badge" style="background: var(--bg-secondary); color: var(--text-secondary); border: 1px solid var(--border);">
+          Historical Dynamics
+        </span>
       </div>
       <div class="card-body-portal p-3">
         <canvas id="ownerMonthlyAttendanceChart" height="110"></canvas>
       </div>
     </div>
-  </div>
 
-  <!-- Latest Finalized Payroll Summary -->
-  <div class="col-lg-4">
-    <div class="card-portal h-100">
-      <div class="card-header-portal">
-        <i class="bi bi-cash-stack text-warning"></i>
-        <h6 class="mb-0 fw-bold">Latest Finalized Payroll</h6>
+    <!-- Quick Executive Navigation Links -->
+    <div class="row g-3">
+      <div class="col-md-4">
+        <div class="card p-3 h-100">
+          <div class="d-flex align-items-center gap-3">
+            <div class="stat-icon blue" style="width: 42px; height: 42px; font-size: 18px;">
+              <i class="bi bi-people"></i>
+            </div>
+            <div>
+              <h6 class="fw-bold mb-1 text-primary" style="font-size: 13.5px;">Staff Directory</h6>
+              <a href="{% url 'employees:employee_list' %}" class="small text-teal text-decoration-none">Browse Roster &rarr;</a>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="card-body-portal p-3">
-        {% if latest_finalized %}
-        <div class="p-3 bg-light rounded-3 mb-3 border">
-          <span class="text-muted small text-uppercase fw-semibold d-block">Period Outlay</span>
-          <h3 class="text-navy fw-bold mb-1">{{ CURRENCY_SYMBOL }} {{ latest_finalized.total_net_pay|floatformat:2 }}</h3>
-          <small class="text-muted">Total Net Salary Paid</small>
-        </div>
 
-        <table class="table table-sm table-borderless mb-3 small">
-          <tbody>
-            <tr>
-              <td class="text-muted">Cycle:</td>
-              <td class="fw-semibold text-end">{{ latest_finalized.get_cycle_type_display }}</td>
-            </tr>
-            <tr>
-              <td class="text-muted">Duration:</td>
-              <td class="fw-semibold text-end">{{ latest_finalized.start_date|date:"d M" }} – {{ latest_finalized.end_date|date:"d M Y" }}</td>
-            </tr>
-            <tr>
-              <td class="text-muted">Total Base Pay:</td>
-              <td class="fw-semibold text-end">{{ CURRENCY_SYMBOL }} {{ latest_finalized.total_base_pay|floatformat:2 }}</td>
-            </tr>
-            <tr>
-              <td class="text-muted">Total Overtime Pay:</td>
-              <td class="fw-semibold text-end">{{ CURRENCY_SYMBOL }} {{ latest_finalized.total_overtime_pay|floatformat:2 }}</td>
-            </tr>
-            <tr>
-              <td class="text-muted">Finalized Date:</td>
-              <td class="text-end">{{ latest_finalized.finalized_at|date:"d M Y" }}</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <a href="{% url 'payroll:period_detail' latest_finalized.pk %}" class="btn btn-outline-primary btn-sm w-100">
-          Inspect Finalized Breakdown &rarr;
-        </a>
-        {% else %}
-        <div class="text-center py-4 text-muted">
-          <i class="bi bi-wallet2 fs-2 d-block mb-2 text-secondary"></i>
-          No finalized payroll periods yet.
+      <div class="col-md-4">
+        <div class="card p-3 h-100">
+          <div class="d-flex align-items-center gap-3">
+            <div class="stat-icon teal" style="width: 42px; height: 42px; font-size: 18px;">
+              <i class="bi bi-card-checklist"></i>
+            </div>
+            <div>
+              <h6 class="fw-bold mb-1 text-primary" style="font-size: 13.5px;">Attendance Ledger</h6>
+              <a href="{% url 'attendance:attendance_list' %}" class="small text-teal text-decoration-none">Inspect Logs &rarr;</a>
+            </div>
+          </div>
         </div>
-        {% endif %}
       </div>
-    </div>
-  </div>
-</div>
 
-<!-- Quick Executive Links -->
-<div class="row g-4">
-  <div class="col-md-4">
-    <div class="card border-0 shadow-sm p-3 h-100">
-      <div class="d-flex align-items-center gap-3">
-        <div class="rounded-circle bg-primary bg-opacity-10 text-primary p-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-          <i class="bi bi-people fs-4"></i>
-        </div>
-        <div>
-          <h6 class="fw-bold mb-1">Workforce Directory</h6>
-          <a href="{% url 'employees:employee_list' %}" class="small text-decoration-none">Browse Roster &rarr;</a>
+      <div class="col-md-4">
+        <div class="card p-3 h-100">
+          <div class="d-flex align-items-center gap-3">
+            <div class="stat-icon amber" style="width: 42px; height: 42px; font-size: 18px;">
+              <i class="bi bi-cash"></i>
+            </div>
+            <div>
+              <h6 class="fw-bold mb-1 text-primary" style="font-size: 13.5px;">Payroll Periods</h6>
+              <a href="{% url 'payroll:period_list' %}" class="small text-teal text-decoration-none">View Outlay &rarr;</a>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="col-md-4">
-    <div class="card border-0 shadow-sm p-3 h-100">
-      <div class="d-flex align-items-center gap-3">
-        <div class="rounded-circle bg-teal bg-opacity-10 text-teal p-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; color: #0d9488 !important; background-color: rgba(13,148,136,0.1) !important;">
-          <i class="bi bi-card-checklist fs-4"></i>
-        </div>
-        <div>
-          <h6 class="fw-bold mb-1">Attendance Records</h6>
-          <a href="{% url 'attendance:attendance_list' %}" class="small text-decoration-none">Inspect Ledger &rarr;</a>
-        </div>
+  <!-- Right Side Dedicated SaaS Panel -->
+  <div class="col-xl-4 col-lg-5 d-flex flex-column gap-4">
+    <!-- Latest Finalized Payroll Summary -->
+    <div class="right-panel-card">
+      <div class="right-panel-header">
+        <h6 class="right-panel-title">
+          <i class="bi bi-cash-stack text-amber"></i> Latest Finalized Payroll
+        </h6>
+        <span class="badge bg-success-subtle border border-success-subtle">Audited</span>
       </div>
-    </div>
-  </div>
 
-  <div class="col-md-4">
-    <div class="card border-0 shadow-sm p-3 h-100">
-      <div class="d-flex align-items-center gap-3">
-        <div class="rounded-circle bg-warning bg-opacity-10 text-warning p-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-          <i class="bi bi-cash fs-4"></i>
-        </div>
-        <div>
-          <h6 class="fw-bold mb-1">Historical Payroll</h6>
-          <a href="{% url 'payroll:period_list' %}" class="small text-decoration-none">View Statements &rarr;</a>
-        </div>
+      {% if latest_finalized %}
+      <div class="p-3 bg-secondary-card rounded-3 mb-3 border">
+        <span class="text-secondary small text-uppercase fw-semibold d-block">Period Outlay</span>
+        <h3 class="text-teal fw-bold mb-1 mt-1">{{ CURRENCY_SYMBOL }} {{ latest_finalized.total_net_pay|floatformat:2 }}</h3>
+        <small class="text-muted">Total Net Salary Disbursed</small>
       </div>
+
+      <table class="table table-sm table-borderless mb-3 small">
+        <tbody>
+          <tr>
+            <td class="text-secondary">Cycle:</td>
+            <td class="fw-semibold text-primary text-end">{{ latest_finalized.get_cycle_type_display }}</td>
+          </tr>
+          <tr>
+            <td class="text-secondary">Duration:</td>
+            <td class="fw-semibold text-primary text-end">{{ latest_finalized.start_date|date:"d M" }} – {{ latest_finalized.end_date|date:"d M Y" }}</td>
+          </tr>
+          <tr>
+            <td class="text-secondary">Total Base Pay:</td>
+            <td class="fw-semibold text-primary text-end">{{ CURRENCY_SYMBOL }} {{ latest_finalized.total_base_pay|floatformat:2 }}</td>
+          </tr>
+          <tr>
+            <td class="text-secondary">Total Overtime Pay:</td>
+            <td class="fw-semibold text-teal text-end">{{ CURRENCY_SYMBOL }} {{ latest_finalized.total_overtime_pay|floatformat:2 }}</td>
+          </tr>
+          <tr>
+            <td class="text-secondary">Finalized On:</td>
+            <td class="text-primary text-end">{{ latest_finalized.finalized_at|date:"d M Y" }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <a href="{% url 'payroll:period_detail' latest_finalized.pk %}" class="btn btn-outline-teal btn-sm w-100">
+        Inspect Finalized Breakdown &rarr;
+      </a>
+      {% else %}
+      <div class="text-center py-4 text-muted">
+        <i class="bi bi-wallet2 fs-2 d-block mb-2 text-secondary"></i>
+        No finalized payroll periods yet.
+      </div>
+      {% endif %}
     </div>
   </div>
 </div>
@@ -204,32 +242,60 @@ document.addEventListener("DOMContentLoaded", function() {
           {
             label: "Present Turnout",
             data: presentData,
-            borderColor: "#0d9488",
-            backgroundColor: "rgba(13, 148, 136, 0.1)",
+            borderColor: "#35C6B3",
+            backgroundColor: "rgba(53, 198, 179, 0.12)",
             fill: true,
-            tension: 0.3,
-            borderWidth: 2,
-            pointRadius: 2,
+            tension: 0.35,
+            borderWidth: 2.5,
+            pointRadius: 2.5,
+            pointBackgroundColor: "#35C6B3",
           },
           {
             label: "Absent / Off",
             data: absentData,
-            borderColor: "#ef4444",
+            borderColor: "#EF7378",
             backgroundColor: "transparent",
             borderDash: [5, 5],
             borderWidth: 1.5,
             pointRadius: 1,
+            pointBackgroundColor: "#EF7378",
           }
         ]
       },
       options: {
         responsive: true,
+        maintainAspectRatio: false,
         plugins: {
-          legend: { position: "top", labels: { boxWidth: 12, font: { size: 12 } } }
+          legend: {
+            position: "top",
+            labels: {
+              boxWidth: 10,
+              boxHeight: 10,
+              color: "#9BAAB5",
+              font: { size: 11.5, family: "'Inter', sans-serif" },
+              padding: 14
+            }
+          },
+          tooltip: {
+            backgroundColor: "#192630",
+            titleColor: "#F2F5F7",
+            bodyColor: "#9BAAB5",
+            borderColor: "#2C3C47",
+            borderWidth: 1,
+            cornerRadius: 8,
+            padding: 10
+          }
         },
         scales: {
-          x: { grid: { display: false } },
-          y: { beginAtZero: true, ticks: { precision: 0 } }
+          x: {
+            grid: { display: false },
+            ticks: { color: "#9BAAB5", font: { size: 11 } }
+          },
+          y: {
+            beginAtZero: true,
+            grid: { color: "rgba(255, 255, 255, 0.05)" },
+            ticks: { precision: 0, color: "#9BAAB5", font: { size: 11 } }
+          }
         }
       }
     });

@@ -190,4 +190,4 @@ d:\THAMARAYYATH\
 ```
 
 ---
-*Developed for **Thamarayyath Enterprise**.*
+*Developed for **Thamarayyath**.*
