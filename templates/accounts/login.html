@@ -13,7 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-  <link rel="stylesheet" href="{% static 'css/portal.css' %}">
+  <link rel="stylesheet" href="{% static 'css/portal.css' %}?v=2.2">
 </head>
 <body class="login-page">
 
@@ -116,14 +116,14 @@
     <div class="login-footer">
       <div class="d-flex align-items-center justify-content-center gap-2 text-muted" style="font-size: 11.5px;">
         <i class="bi bi-shield-check text-teal"></i>
-        <span>Enterprise Portal &bull; Authorized Access Only</span>
+        <span>Administrative Portal &bull; Authorized Access Only</span>
       </div>
     </div>
   </div>
 </div>
 
 <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
-<script src="{% static 'js/portal.js' %}"></script>
+<script src="{% static 'js/portal.js' %}?v=2.2"></script>
 <script>
   function refreshCaptcha() {
     var img = document.getElementById('captchaImg');

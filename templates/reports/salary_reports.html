@@ -13,14 +13,14 @@
 <div class="row g-4 mb-4">
   <!-- Cycle-Filtered Payroll CSV -->
   <div class="col-12 col-lg-5">
-    <div class="card border-0 shadow-sm h-100">
-      <div class="card-header bg-white py-3 border-0">
-        <h5 class="card-title fw-bold mb-1">
+    <div class="card-portal h-100">
+      <div class="card-header-portal">
+        <h5 class="fw-bold mb-1" style="font-size: 15px;">
           <i class="bi bi-clock-history text-primary me-2"></i>Filter by Payroll Cycle
         </h5>
         <p class="text-muted small mb-0">Export payroll breakdown statements grouped by compensation cycle.</p>
       </div>
-      <div class="card-body">
+      <div class="card-body-portal">
         <form action="{% url 'reports:payroll_cycle_csv' %}" method="get">
           <div class="mb-3">
             <label class="form-label fw-medium">Payroll Cycle</label>
@@ -40,17 +40,17 @@
 
   <!-- Recent Payroll Periods -->
   <div class="col-12 col-lg-7">
-    <div class="card border-0 shadow-sm h-100">
-      <div class="card-header bg-white py-3 border-0">
-        <h5 class="card-title fw-bold mb-1">
+    <div class="card-portal h-100">
+      <div class="card-header-portal">
+        <h5 class="fw-bold mb-1" style="font-size: 15px;">
           <i class="bi bi-cash-stack text-teal me-2"></i>Recent Payroll Periods
         </h5>
         <p class="text-muted small mb-0">Export individual period records to formatted Excel or PDF registers.</p>
       </div>
-      <div class="card-body p-0">
+      <div class="card-body-portal p-0">
         <div class="table-responsive">
-          <table class="table table-hover align-middle mb-0">
-            <thead class="table-light">
+          <table class="table-portal align-middle mb-0">
+            <thead>
               <tr>
                 <th>Period</th>
                 <th>Cycle</th>

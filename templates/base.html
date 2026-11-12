@@ -22,7 +22,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
   <!-- Custom Premium Dark SaaS Design System -->
-  <link rel="stylesheet" href="{% static 'css/portal.css' %}">
+  <link rel="stylesheet" href="{% static 'css/portal.css' %}?v=2.2">
 
   {% block extra_head %}{% endblock %}
 </head>
@@ -191,7 +191,7 @@
 
         <div class="topbar-heading">
           <h1 class="topbar-title">{% block page_title %}Dashboard{% endblock %}</h1>
-          <div class="topbar-breadcrumb">{% block breadcrumbs %}<span class="text-teal">{{ COMPANY_NAME }}</span> &bull; Workforce Hub{% endblock %}</div>
+          <div class="topbar-breadcrumb">{% block breadcrumbs %}<span class="text-teal">{{ COMPANY_NAME }}</span> &bull; Administrative Portal{% endblock %}</div>
         </div>
       </div>
 
@@ -333,7 +333,7 @@
 <!-- Chart.js -->
 <script src="{% static 'vendor/chartjs/chart.umd.min.js' %}"></script>
 <!-- Portal Global JS -->
-<script src="{% static 'js/portal.js' %}"></script>
+<script src="{% static 'js/portal.js' %}?v=2.2"></script>
 
 {% block extra_scripts %}{% endblock %}
 </body>

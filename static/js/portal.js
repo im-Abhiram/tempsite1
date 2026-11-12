@@ -48,20 +48,21 @@ document.addEventListener('DOMContentLoaded', function () {
   // ── 2. Live Topbar Digital Clock ──────────────────────────────────────
   const clockEl = document.getElementById('topbarLiveClock');
   if (clockEl) {
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     function updateClock() {
       const now = new Date();
-      const datePart = now.toLocaleDateString('en-IN', {
-        weekday: 'short',
-        day: '2-digit',
-        month: 'short'
-      });
-      const timePart = now.toLocaleTimeString('en-IN', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: true
-      });
-      clockEl.textContent = `${datePart} • ${timePart}`;
+      const dayName = days[now.getDay()];
+      const day = String(now.getDate()).padStart(2, '0');
+      const monthName = months[now.getMonth()];
+      let hours = now.getHours();
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours ? hours : 12;
+      const formattedHours = String(hours).padStart(2, '0');
+      clockEl.innerHTML = `${dayName}, ${day} ${monthName} &bull; ${formattedHours}:${minutes}:${seconds} ${ampm}`;
     }
     updateClock();
     setInterval(updateClock, 1000);

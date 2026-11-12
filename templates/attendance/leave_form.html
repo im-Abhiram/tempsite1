@@ -12,11 +12,13 @@
 {% block content %}
 <div class="row justify-content-center">
   <div class="col-12 col-md-8 col-lg-6">
-    <div class="card border-0 shadow-sm">
-      <div class="card-header bg-white py-3 border-0">
-        <h5 class="card-title fw-bold mb-0">Record Leave Request</h5>
+    <div class="card-portal">
+      <div class="card-header-portal">
+        <h5 class="fw-bold mb-0" style="font-size: 15px;">
+          <i class="bi bi-calendar2-plus text-teal me-2"></i>Record Leave Request
+        </h5>
       </div>
-      <div class="card-body">
+      <div class="card-body-portal">
         <form method="post" novalidate>
           {% csrf_token %}
           

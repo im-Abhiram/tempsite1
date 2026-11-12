@@ -13,14 +13,14 @@
 <div class="row g-4 mb-4">
   <!-- 1. Individual Employee History -->
   <div class="col-12 col-lg-6">
-    <div class="card border-0 shadow-sm h-100">
-      <div class="card-header bg-white py-3 border-0">
-        <h5 class="card-title fw-bold mb-1">
+    <div class="card-portal h-100">
+      <div class="card-header-portal">
+        <h5 class="fw-bold mb-1" style="font-size: 15px;">
           <i class="bi bi-person-lines-fill text-primary me-2"></i>Individual Employee Attendance History
         </h5>
         <p class="text-muted small mb-0">Generate complete punch and hours log for a specific employee.</p>
       </div>
-      <div class="card-body">
+      <div class="card-body-portal">
         <form action="{% url 'reports:individual_attendance_csv' %}" method="get">
           <div class="mb-3">
             <label class="form-label fw-medium">Select Employee</label>
@@ -41,14 +41,14 @@
 
   <!-- 2. Single Day Snapshot -->
   <div class="col-12 col-lg-6">
-    <div class="card border-0 shadow-sm h-100">
-      <div class="card-header bg-white py-3 border-0">
-        <h5 class="card-title fw-bold mb-1">
+    <div class="card-portal h-100">
+      <div class="card-header-portal">
+        <h5 class="fw-bold mb-1" style="font-size: 15px;">
           <i class="bi bi-calendar2-day text-teal me-2"></i>Daily Attendance Snapshot
         </h5>
         <p class="text-muted small mb-0">Export all employee punch records for an exact work date.</p>
       </div>
-      <div class="card-body">
+      <div class="card-body-portal">
         <form action="{% url 'reports:daily_attendance_csv' %}" method="get">
           <div class="mb-3">
             <label class="form-label fw-medium">Work Date</label>
@@ -64,14 +64,14 @@
 
   <!-- 3. Monthly Calendar Register -->
   <div class="col-12 col-lg-6">
-    <div class="card border-0 shadow-sm h-100">
-      <div class="card-header bg-white py-3 border-0">
-        <h5 class="card-title fw-bold mb-1">
+    <div class="card-portal h-100">
+      <div class="card-header-portal">
+        <h5 class="fw-bold mb-1" style="font-size: 15px;">
           <i class="bi bi-calendar-month text-warning me-2"></i>Monthly Attendance Register
         </h5>
         <p class="text-muted small mb-0">Full monthly attendance ledger for all active staff.</p>
       </div>
-      <div class="card-body">
+      <div class="card-body-portal">
         <form action="{% url 'reports:monthly_attendance_csv' %}" method="get">
           <div class="row g-2 mb-3">
             <div class="col-6">
@@ -106,14 +106,14 @@
 
   <!-- 4. Excel Attendance Ledger -->
   <div class="col-12 col-lg-6">
-    <div class="card border-0 shadow-sm h-100">
-      <div class="card-header bg-white py-3 border-0">
-        <h5 class="card-title fw-bold mb-1">
+    <div class="card-portal h-100">
+      <div class="card-header-portal">
+        <h5 class="fw-bold mb-1" style="font-size: 15px;">
           <i class="bi bi-file-earmark-excel-fill text-success me-2"></i>Formatted Excel Attendance Ledger
         </h5>
         <p class="text-muted small mb-0">Professional formatted .xlsx ledger ready for accounting distribution.</p>
       </div>
-      <div class="card-body">
+      <div class="card-body-portal">
         <form action="{% url 'reports:attendance_excel' %}" method="get">
           <div class="row g-2 mb-3">
             <div class="col-6">
