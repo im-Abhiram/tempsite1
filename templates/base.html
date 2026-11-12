@@ -267,8 +267,11 @@
     <!-- Portal Footer -->
     <footer class="mt-auto py-3 px-4 bg-white border-top text-center text-muted" style="font-size: 12px;">
       <div class="d-flex flex-wrap justify-content-between align-items-center">
-        <div>
-          &copy; {% now "Y" %} <strong>{{ COMPANY_NAME }}</strong>. All rights reserved.
+        <div class="d-flex align-items-center flex-wrap gap-2">
+          <span>&copy; {% now "Y" %} <strong>{{ COMPANY_NAME }}</strong>. All rights reserved.</span>
+          <span class="badge" style="background: rgba(13, 148, 136, 0.12); color: #0D9488; font-weight: 500; font-size: 11px; padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(13, 148, 136, 0.25);">
+            Created by Abhiram
+          </span>
         </div>
         <div>
           <span>Role: <strong class="text-teal">{{ request.user.get_role_display }}</strong></span> &bull;
