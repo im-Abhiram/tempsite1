@@ -563,7 +563,7 @@ body {
   border-color: var(--teal-500);
 }
 
-/* ── LAN status pulse animation ───────────────────────────── */
+/* ── Status pulse animation ──────────────────────────────── */
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50%       { opacity: .4; }

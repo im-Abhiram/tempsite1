@@ -156,7 +156,7 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = False  # Only enable after verifying HTTPS is stable
-    SECURE_SSL_REDIRECT = False  # Managed by Waitress / reverse proxy
+    SECURE_SSL_REDIRECT = False  # Managed by reverse proxy (e.g. PythonAnywhere/Nginx)
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # ─── Internationalisation ───────────────────────────────────────────────────────

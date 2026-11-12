@@ -4,14 +4,13 @@
 [![Python](https://img.shields.io/badge/Python-3.14-3776AB?logo=python)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-Proprietary-navy.svg)](#)
 [![Deployment](https://img.shields.io/badge/Deployment-PythonAnywhere%20Free%20Tier-20B2AA.svg)](PYTHONANYWHERE_DEPLOYMENT.md)
-[![Deployment](https://img.shields.io/badge/Deployment-Windows%20Workstation%20LAN-teal.svg)](#lan-deployment-instructions)
-[![Tests](https://img.shields.io/badge/Tests-35%20Passed%20(100%25)-success.svg)](#running-the-test-suite)
+[![Tests](https://img.shields.io/badge/Tests-45%20Passed%20(100%25)-success.svg)](#running-the-test-suite)
 
 A complete, professional, secure, and responsive Employee Management, Attendance Tracking, and Salary Management Portal named **Thamarayyath Employee Portal**.
 
-Engineered specifically for zero-cost deployment on a **PythonAnywhere Free (Beginner) Account** as well as local/LAN environments on Windows.
+Engineered specifically for deployment on **PythonAnywhere** cloud hosting.
 
-> **PythonAnywhere Free Account Guide**: See [PYTHONANYWHERE_DEPLOYMENT.md](PYTHONANYWHERE_DEPLOYMENT.md) for full step-by-step setup instructions (WSGI config, virtualenv, static mappings, and SQLite persistence).
+> **PythonAnywhere Free Account Guide**: See [PYTHONANYWHERE_DEPLOYMENT.md](PYTHONANYWHERE_DEPLOYMENT.md) for full step-by-step setup instructions (WSGI configuration, virtualenv, static file mappings, and SQLite persistence).
 
 ---
 
@@ -20,7 +19,7 @@ Engineered specifically for zero-cost deployment on a **PythonAnywhere Free (Beg
 2. [Role-Based Access Control (RBAC)](#role-based-access-control-rbac)
 3. [Attendance & Payroll Calculation Engine](#attendance--payroll-calculation-engine)
 4. [Security Architecture & Document Vault](#security-architecture--document-vault)
-5. [LAN Deployment Instructions](#lan-deployment-instructions)
+5. [Deployment on PythonAnywhere](#deployment-on-pythonanywhere)
 6. [Demo Accounts & Credentials](#demo-accounts--credentials)
 7. [Running the Test Suite](#running-the-test-suite)
 8. [Project Structure](#project-structure)
@@ -114,35 +113,31 @@ $$\text{Overtime Hours} = \max(0, \text{Net Hours} - \text{Daily OT Threshold})$
 
 ---
 
-## LAN Deployment Instructions
+## Deployment on PythonAnywhere
 
-The application is optimized for deployment on a local Windows workstation acting as the LAN server.
+The application is deployed on **PythonAnywhere** cloud hosting.
 
-### Prerequisites
-- Python 3.12+ (Windows 64-bit)
-- PowerShell 5.1+
+### Quick Setup Overview
+1. **Clone repository** in a PythonAnywhere Bash console:
+   ```bash
+   git clone https://github.com/im-Abhiram/tempsite1.git
+   ```
+2. **Create virtualenv & install dependencies**:
+   ```bash
+   mkvirtualenv --python=/usr/bin/python3.10 thamarayyath-env
+   pip install -r requirements.txt
+   ```
+3. **Configure WSGI**:
+   - In PythonAnywhere **Web** tab, open the WSGI configuration file.
+   - Copy contents from [`pythonanywhere_wsgi.py`](pythonanywhere_wsgi.py).
+4. **Run migrations & collect static**:
+   ```bash
+   python manage.py migrate
+   python manage.py collectstatic --noinput
+   ```
+5. **Reload Web App**: Click the green **Reload** button in the Web tab.
 
-### Step 1: Open Port 8000 in Windows Firewall
-Right-click `setup_windows_firewall.bat` and select **Run as Administrator**.
-*(This creates an inbound firewall rule allowing traffic on port 8000 for private company network profiles).*
-
-### Step 2: Start the Production Server
-Run either launcher:
-- **PowerShell**: Right-click `start_lan_server.ps1` -> **Run with PowerShell**
-- **Batch**: Double-click `start_lan_server.bat`
-
-The launcher automatically:
-1. Verifies the virtual environment `.venv`.
-2. Applies all database migrations.
-3. Automatically discovers the host workstation's local LAN IP (e.g., `192.168.1.45`).
-4. Launches the production **Waitress WSGI** multi-threaded server listening on `0.0.0.0:8000`.
-
-### Step 3: Accessing the Portal from Other LAN Workstations
-Open any modern web browser (Edge, Chrome, Firefox) on client machines connected to the same company Wi-Fi / LAN and navigate to:
-```
-http://<WORKSTATION-LAN-IP>:8000/
-```
-*(Example: `http://192.168.1.45:8000/`)*
+> **Full Deployment & Safe Update Guide**: Refer to [PYTHONANYWHERE_DEPLOYMENT.md](PYTHONANYWHERE_DEPLOYMENT.md) for full instructions, static/media mappings, security checklist, and zero-data-loss update procedures.
 
 ---
 
@@ -191,10 +186,7 @@ d:\THAMARAYYATH\
 ├── templates\                # High-fidelity role-based Django templates (20+ pages)
 ├── media\                    # Upload directories (employee photos, documents, payroll)
 ├── pythonanywhere_wsgi.py     # Copy-paste WSGI configuration for PythonAnywhere free hosting
-├── PYTHONANYWHERE_DEPLOYMENT.md # Beginner-friendly step-by-step deployment guide
-├── start_lan_server.bat      # Windows batch double-click launcher
-├── start_lan_server.ps1      # PowerShell launcher with auto LAN IP detection
-└── setup_windows_firewall.bat# One-click Windows Defender Firewall configurator
+└── PYTHONANYWHERE_DEPLOYMENT.md # Beginner-friendly step-by-step deployment guide
 ```
 
 ---

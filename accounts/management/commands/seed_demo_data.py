@@ -2,7 +2,7 @@
 Thamarayyath Employee Portal — Management Command: seed_demo_data
 
 Populates the database with realistic demonstration data for development,
-LAN deployment verification, and testing.
+deployment verification, and testing.
 
 Creates:
 - System users (Superadmin, Accountant, Owner)
@@ -311,7 +311,7 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS("""
 ======================================================================
-  THAMARAYYATH EMPLOYEE PORTAL -- READY FOR LAN ACCESS!
+  THAMARAYYATH EMPLOYEE PORTAL -- READY!
 ======================================================================
   Default System Accounts:
   ------------------------------------------------------------------
