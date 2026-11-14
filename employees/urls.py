@@ -25,10 +25,12 @@ urlpatterns = [
     # Departments
     path("departments/", views.DepartmentListView.as_view(), name="department_list"),
     path("departments/create/", views.DepartmentCreateView.as_view(), name="department_create"),
+    path("departments/<int:pk>/edit/", views.DepartmentUpdateView.as_view(), name="department_edit"),
     path("departments/<int:pk>/delete/", views.DepartmentDeleteView.as_view(), name="department_delete"),
 
     # Shifts
     path("shifts/", views.ShiftListView.as_view(), name="shift_list"),
     path("shifts/create/", views.ShiftCreateView.as_view(), name="shift_create"),
+    path("shifts/<int:pk>/edit/", views.ShiftUpdateView.as_view(), name="shift_edit"),
     path("shifts/<int:pk>/delete/", views.ShiftDeleteView.as_view(), name="shift_delete"),
 ]

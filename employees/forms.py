@@ -25,6 +25,10 @@ class DepartmentForm(forms.ModelForm):
             "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
 
+    def clean_code(self):
+        code = self.cleaned_data.get("code", "").strip().upper()
+        return code
+
 
 class DesignationForm(forms.ModelForm):
     class Meta:
@@ -42,12 +46,20 @@ class ShiftForm(forms.ModelForm):
         fields = ["name", "start_time", "end_time", "unpaid_break_minutes", "is_night_shift", "is_active"]
         widgets = {
             "name": forms.TextInput(attrs={"class": "form-control"}),
-            "start_time": forms.TimeInput(attrs={"class": "form-control", "type": "time"}),
-            "end_time": forms.TimeInput(attrs={"class": "form-control", "type": "time"}),
+            "start_time": forms.TimeInput(format="%H:%M", attrs={"class": "form-control", "type": "time"}),
+            "end_time": forms.TimeInput(format="%H:%M", attrs={"class": "form-control", "type": "time"}),
             "unpaid_break_minutes": forms.NumberInput(attrs={"class": "form-control", "min": 0}),
             "is_night_shift": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        start = cleaned_data.get("start_time")
+        end = cleaned_data.get("end_time")
+        if start and end and start == end:
+            raise forms.ValidationError("Shift start time and end time cannot be identical.")
+        return cleaned_data
 
 
 # ─── Employee Profile Form ───────────────────────────────────────────────────────

@@ -446,15 +446,62 @@ class DepartmentListView(AccountantOrSuperadminMixin, ListView):
 
 class DepartmentCreateView(AccountantOrSuperadminMixin, View):
     def get(self, request):
-        return render(request, "employees/lookup_form.html", {"form": DepartmentForm(), "title": "Add Department"})
+        return render(request, "employees/lookup_form.html", {
+            "form": DepartmentForm(),
+            "title": "Add Department",
+            "department": True,
+        })
 
     def post(self, request):
         form = DepartmentForm(request.POST)
         if form.is_valid():
-            form.save()
-            messages.success(request, "Department created.")
+            with transaction.atomic():
+                dept = form.save()
+                audit_log(
+                    actor=request.user, action="DEPARTMENT_CREATE",
+                    target_model="Department", target_id=str(dept.pk),
+                    ip_address=request.META.get("REMOTE_ADDR"),
+                    extra={"name": dept.name, "code": dept.code},
+                )
+            messages.success(request, f"Department '{dept.name}' created.")
             return redirect("employees:department_list")
-        return render(request, "employees/lookup_form.html", {"form": form, "title": "Add Department"})
+        return render(request, "employees/lookup_form.html", {
+            "form": form,
+            "title": "Add Department",
+            "department": True,
+        })
+
+
+class DepartmentUpdateView(AccountantOrSuperadminMixin, View):
+    def get(self, request, pk):
+        department = get_object_or_404(Department, pk=pk)
+        form = DepartmentForm(instance=department)
+        return render(request, "employees/lookup_form.html", {
+            "form": form,
+            "title": f"Edit Department: {department.name}",
+            "department": department,
+        })
+
+    def post(self, request, pk):
+        department = get_object_or_404(Department, pk=pk)
+        old_name = department.name
+        form = DepartmentForm(request.POST, instance=department)
+        if form.is_valid():
+            with transaction.atomic():
+                dept = form.save()
+                audit_log(
+                    actor=request.user, action="DEPARTMENT_UPDATE",
+                    target_model="Department", target_id=str(pk),
+                    ip_address=request.META.get("REMOTE_ADDR"),
+                    extra={"old_name": old_name, "name": dept.name, "code": dept.code, "is_active": dept.is_active},
+                )
+            messages.success(request, f"Department '{dept.name}' updated successfully.")
+            return redirect("employees:department_list")
+        return render(request, "employees/lookup_form.html", {
+            "form": form,
+            "title": f"Edit Department: {department.name}",
+            "department": department,
+        })
 
 
 class DepartmentDeleteView(AccountantOrSuperadminMixin, View):
@@ -506,15 +553,68 @@ class ShiftListView(AccountantOrSuperadminMixin, ListView):
 
 class ShiftCreateView(AccountantOrSuperadminMixin, View):
     def get(self, request):
-        return render(request, "employees/lookup_form.html", {"form": ShiftForm(), "title": "Add Shift"})
+        return render(request, "employees/lookup_form.html", {
+            "form": ShiftForm(),
+            "title": "Add Shift",
+            "shift": True,
+        })
 
     def post(self, request):
         form = ShiftForm(request.POST)
         if form.is_valid():
-            form.save()
-            messages.success(request, "Shift created.")
+            with transaction.atomic():
+                saved_shift = form.save()
+                audit_log(
+                    actor=request.user, action="SHIFT_CREATE",
+                    target_model="Shift", target_id=str(saved_shift.pk),
+                    ip_address=request.META.get("REMOTE_ADDR"),
+                    extra={"name": saved_shift.name},
+                )
+            messages.success(request, f"Shift '{saved_shift.name}' created.")
             return redirect("employees:shift_list")
-        return render(request, "employees/lookup_form.html", {"form": form, "title": "Add Shift"})
+        return render(request, "employees/lookup_form.html", {
+            "form": form,
+            "title": "Add Shift",
+            "shift": True,
+        })
+
+
+class ShiftUpdateView(AccountantOrSuperadminMixin, View):
+    def get(self, request, pk):
+        shift = get_object_or_404(Shift, pk=pk)
+        form = ShiftForm(instance=shift)
+        return render(request, "employees/lookup_form.html", {
+            "form": form,
+            "title": f"Edit Shift: {shift.name}",
+            "shift": shift,
+        })
+
+    def post(self, request, pk):
+        shift = get_object_or_404(Shift, pk=pk)
+        old_name = shift.name
+        form = ShiftForm(request.POST, instance=shift)
+        if form.is_valid():
+            with transaction.atomic():
+                saved_shift = form.save()
+                audit_log(
+                    actor=request.user, action="SHIFT_UPDATE",
+                    target_model="Shift", target_id=str(pk),
+                    ip_address=request.META.get("REMOTE_ADDR"),
+                    extra={
+                        "old_name": old_name,
+                        "name": saved_shift.name,
+                        "start_time": str(saved_shift.start_time),
+                        "end_time": str(saved_shift.end_time),
+                        "is_active": saved_shift.is_active,
+                    },
+                )
+            messages.success(request, f"Shift '{saved_shift.name}' updated successfully.")
+            return redirect("employees:shift_list")
+        return render(request, "employees/lookup_form.html", {
+            "form": form,
+            "title": f"Edit Shift: {shift.name}",
+            "shift": shift,
+        })
 
 
 class ShiftDeleteView(AccountantOrSuperadminMixin, View):

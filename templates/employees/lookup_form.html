@@ -2,7 +2,17 @@
 
 {% block title %}{{ title }} &bull; {{ COMPANY_NAME }}{% endblock %}
 {% block page_title %}{{ title }}{% endblock %}
-{% block breadcrumbs %}Workforce &bull; Lookups &bull; {{ title }}{% endblock %}
+{% block breadcrumbs %}
+<span class="text-teal">{{ COMPANY_NAME }}</span> &bull; 
+{% if department %}
+<a href="{% url 'employees:department_list' %}" class="text-decoration-none text-muted">Departments</a>
+{% elif shift %}
+<a href="{% url 'employees:shift_list' %}" class="text-decoration-none text-muted">Shifts</a>
+{% else %}
+Workforce
+{% endif %}
+&bull; {{ title }}
+{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
@@ -10,7 +20,7 @@
     <div class="card-portal">
       <div class="card-header-portal">
         <div class="stat-icon teal" style="width: 38px; height: 38px; font-size: 18px;">
-          <i class="bi bi-plus-circle"></i>
+          <i class="bi {% if 'Edit' in title %}bi-pencil-square{% else %}bi-plus-circle{% endif %}"></i>
         </div>
         <div>
           <h5 class="mb-0 fw-bold" style="font-size: 15px;">{{ title }}</h5>
@@ -50,7 +60,13 @@
           {% endfor %}
 
           <div class="d-flex justify-content-end gap-2 pt-3 border-top">
-            <button type="button" class="btn btn-light border px-4" onclick="history.back()">Cancel</button>
+            {% if department %}
+              <a href="{% url 'employees:department_list' %}" class="btn btn-secondary px-4">Cancel</a>
+            {% elif shift %}
+              <a href="{% url 'employees:shift_list' %}" class="btn btn-secondary px-4">Cancel</a>
+            {% else %}
+              <button type="button" class="btn btn-secondary px-4" onclick="history.back()">Cancel</button>
+            {% endif %}
             <button type="submit" class="btn btn-primary px-4">
               <i class="bi bi-check-lg me-1"></i> Save
             </button>

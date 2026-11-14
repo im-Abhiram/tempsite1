@@ -175,4 +175,90 @@ class EmployeeManagementTests(TestCase):
         self.assertEqual(emp.designation.name, "Lead Architect")
         self.assertEqual(emp.designation.department, self.dept)
 
+    def test_department_edit_view(self):
+        self.client.force_login(self.accountant)
+        dept = Department.objects.create(name="Logistics", code="LOG", is_active=True)
+
+        # GET edit page
+        get_res = self.client.get(reverse("employees:department_edit", args=[dept.pk]))
+        self.assertEqual(get_res.status_code, 200)
+        self.assertContains(get_res, "Logistics")
+        self.assertContains(get_res, "LOG")
+
+        # POST edit update
+        post_res = self.client.post(reverse("employees:department_edit", args=[dept.pk]), {
+            "name": "Supply Chain & Logistics",
+            "code": "SCL",
+            "is_active": True,
+        })
+        self.assertRedirects(post_res, reverse("employees:department_list"))
+        dept.refresh_from_db()
+        self.assertEqual(dept.name, "Supply Chain & Logistics")
+        self.assertEqual(dept.code, "SCL")
+
+    def test_shift_edit_view(self):
+        self.client.force_login(self.accountant)
+        shift = Shift.objects.create(
+            name="Early Bird",
+            start_time="06:00",
+            end_time="14:00",
+            unpaid_break_minutes=30,
+            is_night_shift=False,
+            is_active=True,
+        )
+
+        # GET edit page
+        get_res = self.client.get(reverse("employees:shift_edit", args=[shift.pk]))
+        self.assertEqual(get_res.status_code, 200)
+        self.assertContains(get_res, "Early Bird")
+
+        # POST edit update
+        post_res = self.client.post(reverse("employees:shift_edit", args=[shift.pk]), {
+            "name": "Sunrise Shift",
+            "start_time": "06:30",
+            "end_time": "15:00",
+            "unpaid_break_minutes": 45,
+            "is_night_shift": False,
+            "is_active": True,
+        })
+        self.assertRedirects(post_res, reverse("employees:shift_list"))
+        shift.refresh_from_db()
+        self.assertEqual(shift.name, "Sunrise Shift")
+        self.assertEqual(str(shift.start_time), "06:30:00")
+        self.assertEqual(str(shift.end_time), "15:00:00")
+        self.assertEqual(shift.unpaid_break_minutes, 45)
+
+    def test_shift_edit_identical_start_end_time_rejected(self):
+        self.client.force_login(self.accountant)
+        shift = Shift.objects.create(
+            name="Testing Shift",
+            start_time="09:00",
+            end_time="17:00",
+            unpaid_break_minutes=0,
+            is_night_shift=False,
+            is_active=True,
+        )
+        res = self.client.post(reverse("employees:shift_edit", args=[shift.pk]), {
+            "name": "Testing Shift",
+            "start_time": "09:00",
+            "end_time": "09:00",
+            "unpaid_break_minutes": 0,
+            "is_night_shift": False,
+            "is_active": True,
+        })
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Shift start time and end time cannot be identical.")
+        self.assertTrue(res.context["form"].errors)
+
+    def test_department_and_shift_edit_denied_for_owner(self):
+        self.client.force_login(self.owner)
+        dept = Department.objects.create(name="Human Resources", code="HR", is_active=True)
+        shift = Shift.objects.create(name="Night Shift", start_time="22:00", end_time="06:00", is_night_shift=True)
+
+        dept_res = self.client.get(reverse("employees:department_edit", args=[dept.pk]))
+        self.assertEqual(dept_res.status_code, 403)
+
+        shift_res = self.client.get(reverse("employees:shift_edit", args=[shift.pk]))
+        self.assertEqual(shift_res.status_code, 403)
+
 
