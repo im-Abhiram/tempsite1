@@ -232,3 +232,97 @@ class AccountsModelAndAuthTests(TestCase):
         self.assertEqual(timeout_res.status_code, 302)
         self.assertIn("timeout=1", timeout_res.url)
 
+
+class SecurityHeadersMiddlewareTests(TestCase):
+    """
+    Automated verification of defense-in-depth HTTP security headers and CSP nonces.
+    """
+
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(
+            username="sec_test_user",
+            password="StrongPassword123!",
+            role=Role.OFFICE_ADMIN,
+            display_name="Security Tester",
+        )
+
+    def test_security_headers_present_on_response(self):
+        """Verify presence and strict directives of all HTTP security headers."""
+        response = self.client.get(reverse("accounts:login"))
+        self.assertEqual(response.status_code, 200)
+
+        # 1. Content-Security-Policy
+        self.assertIn("Content-Security-Policy", response.headers)
+        csp = response.headers["Content-Security-Policy"]
+        self.assertIn("default-src 'self'", csp)
+        self.assertIn("object-src 'none'", csp)
+        self.assertIn("base-uri 'self'", csp)
+        self.assertIn("form-action 'self'", csp)
+        self.assertIn("frame-ancestors 'none'", csp)
+        self.assertIn("script-src 'self'", csp)
+        self.assertIn("'nonce-", csp)
+        # Ensure unsafe-inline and unsafe-eval are NOT in script-src
+        script_part = csp.split("script-src")[1].split(";")[0]
+        self.assertNotIn("'unsafe-inline'", script_part)
+        self.assertNotIn("'unsafe-eval'", script_part)
+
+        # 2. X-XSS-Protection: 0 (Modern standard)
+        self.assertEqual(response.headers.get("X-XSS-Protection"), "0")
+
+        # 3. Permissions-Policy
+        self.assertIn("Permissions-Policy", response.headers)
+        pp = response.headers["Permissions-Policy"]
+        self.assertIn("camera=()", pp)
+        self.assertIn("microphone=()", pp)
+        self.assertIn("geolocation=()", pp)
+        self.assertIn("payment=()", pp)
+        self.assertIn("usb=()", pp)
+
+        # 4. Cross-Origin Policies
+        self.assertEqual(response.headers.get("Cross-Origin-Resource-Policy"), "same-origin")
+        self.assertEqual(response.headers.get("Cross-Origin-Embedder-Policy"), "unsafe-none")
+        self.assertEqual(response.headers.get("Cross-Origin-Opener-Policy"), "same-origin")
+
+        # 5. Framing and Content Type Sniffing
+        self.assertEqual(response.headers.get("X-Content-Type-Options"), "nosniff")
+        self.assertEqual(response.headers.get("X-Frame-Options"), "DENY")
+
+    def test_nonce_is_unique_per_request(self):
+        """Dynamic cryptographic nonces must differ across consecutive HTTP requests."""
+        import re
+
+        res1 = self.client.get(reverse("accounts:login"))
+        res2 = self.client.get(reverse("accounts:login"))
+
+        csp1 = res1.headers["Content-Security-Policy"]
+        csp2 = res2.headers["Content-Security-Policy"]
+
+        nonce1_match = re.search(r"'nonce-([^']+)'", csp1)
+        nonce2_match = re.search(r"'nonce-([^']+)'", csp2)
+
+        self.assertIsNotNone(nonce1_match)
+        self.assertIsNotNone(nonce2_match)
+
+        nonce1 = nonce1_match.group(1)
+        nonce2 = nonce2_match.group(1)
+
+        self.assertNotEqual(nonce1, nonce2)
+        # Verify rendered template contains the exact matching nonce
+        self.assertContains(res1, f'nonce="{nonce1}"')
+        self.assertContains(res2, f'nonce="{nonce2}"')
+
+    def test_csp_report_only_mode_toggle(self):
+        """When CSP_REPORT_ONLY is True, Content-Security-Policy-Report-Only is emitted."""
+        with self.settings(CSP_REPORT_ONLY=True):
+            res = self.client.get(reverse("accounts:login"))
+            self.assertIn("Content-Security-Policy-Report-Only", res.headers)
+            self.assertNotIn("Content-Security-Policy", res.headers)
+
+    def test_custom_coep_policy_setting(self):
+        """COEP header respects the COEP_POLICY setting."""
+        with self.settings(COEP_POLICY="require-corp"):
+            res = self.client.get(reverse("accounts:login"))
+            self.assertEqual(res.headers.get("Cross-Origin-Embedder-Policy"), "require-corp")
+
+

@@ -138,7 +138,7 @@
                 {% csrf_token %}
                 <input type="hidden" name="employee_pk" value="{{ emp.pk }}">
                 <input type="hidden" name="action_type" value="mark_absent">
-                <button type="submit" class="btn btn-outline-danger" title="Quick 1-Click Mark Absent Today" onclick="return confirm('Mark {{ emp.full_name }} as ABSENT today?');">
+                <button type="submit" class="btn btn-outline-danger" title="Quick 1-Click Mark Absent Today" data-confirm="Mark {{ emp.full_name }} as ABSENT today?">
                   <i class="bi bi-x-circle"></i>
                 </button>
               </form>

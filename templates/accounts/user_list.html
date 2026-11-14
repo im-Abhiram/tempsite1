@@ -130,14 +130,14 @@
               </a>
               {% if u.pk != request.user.pk and not u.is_superadmin %}
                 {% if u.is_active %}
-                  <form method="post" action="{% url 'accounts:user_suspend' u.pk %}" class="d-inline" onsubmit="return confirm('Suspend user {{ u.username }}? They will not be able to log in.');">
+                  <form method="post" action="{% url 'accounts:user_suspend' u.pk %}" class="d-inline" data-confirm="Suspend user {{ u.username }}? They will not be able to log in.">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-outline-danger" title="Suspend User">
                       <i class="bi bi-person-x"></i>
                     </button>
                   </form>
                 {% else %}
-                  <form method="post" action="{% url 'accounts:user_activate' u.pk %}" class="d-inline" onsubmit="return confirm('Reactivate user {{ u.username }}?');">
+                  <form method="post" action="{% url 'accounts:user_activate' u.pk %}" class="d-inline" data-confirm="Reactivate user {{ u.username }}?">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-outline-success" title="Activate User">
                       <i class="bi bi-person-check"></i>

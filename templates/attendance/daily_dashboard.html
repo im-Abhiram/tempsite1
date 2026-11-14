@@ -12,7 +12,7 @@
       <div class="d-flex align-items-center gap-2">
         <form method="get" class="d-flex align-items-center gap-2 m-0">
           <label for="workDateInput" class="fw-semibold small text-muted text-nowrap">Select Date:</label>
-          <input type="date" id="workDateInput" name="date" value="{{ work_date|date:'Y-m-d' }}" class="form-control form-control-sm" onchange="this.form.submit()">
+          <input type="date" id="workDateInput" name="date" value="{{ work_date|date:'Y-m-d' }}" class="form-control form-control-sm" data-auto-submit="true">
           <button type="submit" class="btn btn-sm btn-outline-secondary">Go</button>
         </form>
         {% if work_date != today %}
@@ -276,7 +276,7 @@
                   <input type="hidden" name="employee_pk" value="{{ emp.pk }}">
                   <input type="hidden" name="work_date" value="{{ work_date|date:'Y-m-d' }}">
                   <input type="hidden" name="action_type" value="mark_absent">
-                  <button type="submit" class="btn btn-sm btn-outline-danger py-1 px-2 fw-semibold d-inline-flex align-items-center gap-1 shadow-sm" title="Single click to mark Absent" onclick="return confirm('Mark {{ emp.full_name }} as ABSENT?');">
+                  <button type="submit" class="btn btn-sm btn-outline-danger py-1 px-2 fw-semibold d-inline-flex align-items-center gap-1 shadow-sm" title="Single click to mark Absent" data-confirm="Mark {{ emp.full_name }} as ABSENT?">
                     <i class="bi bi-x-circle"></i> Mark Absent
                   </button>
                 </form>

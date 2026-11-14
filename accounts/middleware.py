@@ -8,6 +8,7 @@ AuditContextMiddleware     — Attaches the remote IP to the current thread for 
 
 import ipaddress
 import logging
+import secrets
 import threading
 import time
 from django.conf import settings
@@ -122,3 +123,90 @@ class AuditContextMiddleware:
                     return valid_ip
         remote_addr = request.META.get("REMOTE_ADDR")
         return clean_ip(remote_addr) or "127.0.0.1"
+
+
+class SecurityHeadersMiddleware:
+    """
+    Enforces modern HTTP defense-in-depth security headers across all responses.
+
+    1. Content-Security-Policy (CSP) with dynamic per-request cryptographic nonces
+    2. Permissions-Policy (restricts sensitive device & browser APIs)
+    3. Cross-Origin-Resource-Policy (CORP: same-origin)
+    4. Cross-Origin-Embedder-Policy (COEP: unsafe-none to safely allow Google Fonts / CDNs)
+    5. Cross-Origin-Opener-Policy (COOP: same-origin)
+    6. X-XSS-Protection (0: modern OWASP standard disabling buggy legacy XSS auditors)
+    7. X-Content-Type-Options (nosniff)
+    8. X-Frame-Options (DENY)
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+        self.report_only = getattr(settings, "CSP_REPORT_ONLY", False)
+        self.coep_policy = getattr(settings, "COEP_POLICY", "unsafe-none")
+
+    def __call__(self, request):
+        # Generate a cryptographically secure 128-bit random nonce for this request
+        request.csp_nonce = secrets.token_urlsafe(16)
+
+        response = self.get_response(request)
+
+        # 1. Content-Security-Policy
+        csp_directives = [
+            "default-src 'self'",
+            f"script-src 'self' 'nonce-{request.csp_nonce}' https://cdn.jsdelivr.net",
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com",
+            "img-src 'self' data: blob:",
+            "font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com",
+            "connect-src 'self'",
+            "media-src 'self'",
+            "object-src 'none'",
+            "base-uri 'self'",
+            "form-action 'self'",
+            "frame-ancestors 'none'",
+        ]
+        if not settings.DEBUG and request.is_secure():
+            csp_directives.append("upgrade-insecure-requests")
+
+        csp_header = "; ".join(csp_directives)
+        header_name = "Content-Security-Policy-Report-Only" if self.report_only else "Content-Security-Policy"
+        response[header_name] = csp_header
+
+        # 2. Permissions-Policy: Restrict camera, mic, geolocation, payment, USB, etc.
+        response["Permissions-Policy"] = (
+            "accelerometer=(), "
+            "autoplay=(), "
+            "camera=(), "
+            "display-capture=(), "
+            "encrypted-media=(), "
+            "fullscreen=(self), "
+            "geolocation=(), "
+            "gyroscope=(), "
+            "magnetometer=(), "
+            "microphone=(), "
+            "midi=(), "
+            "payment=(), "
+            "usb=()"
+        )
+
+        # 3. Cross-Origin-Resource-Policy: Disallow embedding on cross-origin sites
+        response["Cross-Origin-Resource-Policy"] = "same-origin"
+
+        # 4. Cross-Origin-Embedder-Policy: 'unsafe-none' allows third-party CDNs without CORP
+        response["Cross-Origin-Embedder-Policy"] = self.coep_policy
+
+        # 5. Cross-Origin-Opener-Policy: Isolates browsing context from external windows
+        if "Cross-Origin-Opener-Policy" not in response:
+            response["Cross-Origin-Opener-Policy"] = "same-origin"
+
+        # 6. X-XSS-Protection: Modern OWASP recommendation is 0 (disables vulnerable legacy browser filter)
+        response["X-XSS-Protection"] = "0"
+
+        # 7. Ensure X-Content-Type-Options: nosniff
+        if "X-Content-Type-Options" not in response:
+            response["X-Content-Type-Options"] = "nosniff"
+
+        # 8. Ensure X-Frame-Options: DENY
+        if "X-Frame-Options" not in response:
+            response["X-Frame-Options"] = "DENY"
+
+        return response

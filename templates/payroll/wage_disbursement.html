@@ -216,7 +216,7 @@
                 {% csrf_token %}
                 <input type="hidden" name="action" value="mark_unpaid">
                 <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                <button type="submit" class="btn btn-outline-secondary btn-sm py-1 px-2" style="font-size: 11.5px;" title="Revert to Unpaid status" onclick="return confirm('Revert wage payment for {{ stmt.employee.full_name }} to UNPAID?');">
+                <button type="submit" class="btn btn-outline-secondary btn-sm py-1 px-2" style="font-size: 11.5px;" title="Revert to Unpaid status" data-confirm="Revert wage payment for {{ stmt.employee.full_name }} to UNPAID?">
                   <i class="bi bi-arrow-counterclockwise"></i> Unmark
                 </button>
               </form>

@@ -16,7 +16,7 @@
         <a href="{% url 'reports:statement_excel' statement.pk %}" class="btn btn-outline-success btn-sm d-flex align-items-center gap-1">
           <i class="bi bi-file-earmark-excel"></i> Download Excel Payslip
         </a>
-        <button type="button" class="btn btn-outline-dark btn-sm d-flex align-items-center gap-1" onclick="window.print()">
+        <button type="button" class="btn btn-outline-dark btn-sm d-flex align-items-center gap-1" data-action="print">
           <i class="bi bi-printer"></i> Print Payslip
         </button>
       </div>

@@ -159,14 +159,46 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   // ── 9. Confirmation Action Guard ──────────────────────────────────────
-  const confirmButtons = document.querySelectorAll('[data-confirm]');
-  confirmButtons.forEach(function (btn) {
-    btn.addEventListener('click', function (e) {
+  document.addEventListener('click', function (e) {
+    const btn = e.target.closest('[data-confirm]');
+    if (btn && btn.tagName !== 'FORM') {
       const message = btn.getAttribute('data-confirm') || 'Are you sure you want to proceed with this action?';
       if (!window.confirm(message)) {
         e.preventDefault();
         e.stopPropagation();
       }
-    });
+    }
+  });
+
+  document.addEventListener('submit', function (e) {
+    const form = e.target.closest('form[data-confirm]');
+    if (form) {
+      const message = form.getAttribute('data-confirm') || 'Are you sure you want to proceed?';
+      if (!window.confirm(message)) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    }
+  });
+
+  // ── 10. Unobtrusive Action Handlers (Print, History-Back, Auto-Submit) ─
+  document.addEventListener('click', function (e) {
+    const printBtn = e.target.closest('[data-action="print"]');
+    if (printBtn) {
+      e.preventDefault();
+      window.print();
+    }
+    const backBtn = e.target.closest('[data-action="history-back"]');
+    if (backBtn) {
+      e.preventDefault();
+      history.back();
+    }
+  });
+
+  document.addEventListener('change', function (e) {
+    const autoSubmit = e.target.closest('[data-auto-submit="true"]');
+    if (autoSubmit && autoSubmit.form) {
+      autoSubmit.form.submit();
+    }
   });
 });

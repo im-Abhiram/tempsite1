@@ -268,7 +268,7 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
+<script nonce="{{ csp_nonce }}">
 document.addEventListener("DOMContentLoaded", function() {
   const ctx = document.getElementById("superadminAttendanceChart");
   if (ctx) {

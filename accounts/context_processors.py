@@ -15,6 +15,7 @@ def portal_context(request):
         "PORTAL_NAME": "Thamarayyath Employee Portal",
         "COMPANY_NAME": "Thamarayyath",
         "CURRENCY_SYMBOL": "₹",
+        "csp_nonce": getattr(request, "csp_nonce", ""),
     }
 
     if request.user.is_authenticated:

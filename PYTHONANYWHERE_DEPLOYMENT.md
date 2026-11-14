@@ -87,9 +87,15 @@ LANGUAGE_CODE=en-us
 # Security Controls
 SESSION_COOKIE_AGE=3600
 SESSION_EXPIRE_AT_BROWSER_CLOSE=True
-SECURE_BROWSER_XSS_FILTER=True
 SECURE_CONTENT_TYPE_NOSNIFF=True
 X_FRAME_OPTIONS=DENY
+
+# Defense-in-Depth HTTP Security Headers
+DJANGO_CSP_REPORT_ONLY=False
+DJANGO_COEP_POLICY=unsafe-none
+DJANGO_SECURE_HSTS_SECONDS=31536000
+DJANGO_SECURE_HSTS_PRELOAD=True
+DJANGO_SECURE_SSL_REDIRECT=False
 ```
 
 > **Tip:** You can generate a custom random secret key anytime in Python:
@@ -324,3 +330,41 @@ Once you are familiar with the process, you can copy-paste this single line into
 cd /home/thamara/tempsite1 && workon portal-env && cp db.sqlite3 db.sqlite3.bak_$(date +%Y%m%d_%H%M%S) && git pull origin main && pip install -r requirements.txt && python manage.py migrate && python manage.py collectstatic --noinput && touch /var/www/thamara_pythonanywhere_com_wsgi.py
 ```
 This single command safely creates a backup, pulls latest code, updates packages, migrates the database, collects static files, and reloads your live website!
+
+---
+
+## SSL/TLS Hardening & Security Audit Remediation Guide
+
+This section details how the security vulnerabilities identified in the penetration testing and vulnerability assessment report are remediated across the application code and PythonAnywhere hosting environment.
+
+### 1. HTTP Security Headers Remediation
+
+| Header | Production Value Configured | Security Remediation & Functionality Preservation |
+| :--- | :--- | :--- |
+| **Content-Security-Policy (CSP)** | `default-src 'self'; script-src 'self' 'nonce-...' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src 'self' data: blob:; font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; connect-src 'self'; media-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none';` | Dynamic 128-bit per-request cryptographic nonces injected via `accounts.middleware.SecurityHeadersMiddleware`. All legacy inline event handlers (`onclick`, `onchange`, `onsubmit`) replaced with unobtrusive event listeners in `static/js/portal.js`. Flash/plugin execution blocked via `object-src 'none'`. Clickjacking eliminated via `frame-ancestors 'none'`. Form submission restricted to origin via `form-action 'self'`. Bootstrap, Google Fonts, and Chart.js operate without friction. |
+| **X-XSS-Protection** | `0` | Disables deprecated and buggy browser XSS filter/auditor that introduced client-side side-channel leaks (OWASP recommendation). Robust XSS protection is provided by CSP and contextual HTML escaping. |
+| **Permissions-Policy** | `accelerometer=(), autoplay=(), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=()` | Disables access to unused hardware and browser APIs, eliminating privacy leak vectors. |
+| **Cross-Origin-Resource-Policy (CORP)** | `same-origin` | Protects application resources from unauthorized inclusion by third-party origins. |
+| **Cross-Origin-Embedder-Policy (COEP)** | `unsafe-none` | Allows third-party CDNs (Google Fonts, jsDelivr, Cloudflare CDN) to load without strict CORP headers, preventing broken UI fonts and Bootstrap icons. Configurable via `DJANGO_COEP_POLICY` if cross-origin isolation is required. |
+| **Cross-Origin-Opener-Policy (COOP)** | `same-origin` | Isolates top-level browsing context, preventing Spectre-like cross-origin attacks via `window.opener`. |
+| **X-Content-Type-Options** | `nosniff` | Prevents MIME-confusion attacks and malicious file execution. |
+| **X-Frame-Options** | `DENY` | Defense-in-depth framing restriction preventing clickjacking. |
+| **Strict-Transport-Security (HSTS)** | `max-age=31536000; includeSubDomains; preload` | Automatically emitted on HTTPS requests (`request.is_secure()`) when running with `DEBUG=False`. |
+
+---
+
+### 2. SSL/TLS Vulnerabilities Remediation (DROWN & Lucky 13)
+
+#### Understanding PythonAnywhere's Architecture:
+PythonAnywhere terminates all SSL/TLS connections at their **edge reverse-proxy cluster** (HAProxy/Nginx) before proxying HTTP requests via WSGI to your Django application:
+1. PythonAnywhere forwards the HTTPS status to Django via the `X-Forwarded-Proto: https` HTTP header.
+2. In `config/settings.py`, `SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")` is enabled, allowing Django to detect HTTPS requests and enforce cookies as `Secure` (`SESSION_COOKIE_SECURE=True`, `CSRF_COOKIE_SECURE=True`) and apply HSTS headers.
+3. **Crucial Distinction**: SSLv2, SSLv3, TLS protocols, and cipher suites (e.g. CBC vs AEAD/GCM) are controlled by the **edge web server and proxy**, NOT by Python or Django settings.
+
+#### Remediation Matrix:
+
+| Vulnerability | CVE | Architecture Layer | Remediation / Verification |
+| :--- | :--- | :--- | :--- |
+| **DROWN Attack** | CVE-2016-0800 | Hosting Edge TLS Reverse Proxy | **How it works:** DROWN decrypts TLS ciphertext by exploiting server configurations that support legacy SSLv2 using the same private key.<br><br>**Remediation:**<br>1. **PythonAnywhere Default Subdomain (`*.pythonanywhere.com`):** PythonAnywhere's edge infrastructure disables SSLv2 globally on its wildcard certificate. The application is completely protected against DROWN.<br>2. **Custom Domain Deployments:** If you ever migrate to a custom domain with your own SSL/TLS certificate, **never reuse that private key** on any legacy mail, FTP, or web server that permits SSLv2. Always verify cipher disabling via SSL Labs (`ssllabs.com/ssltest/`). |
+| **Lucky 13** | CVE-2013-0169 | Hosting Edge TLS Reverse Proxy | **How it works:** A cryptographic timing attack against Cipher Block Chaining (CBC) mode ciphers in TLS 1.0, 1.1, and 1.2.<br><br>**Remediation:**<br>1. CBC ciphers cannot be disabled from inside Django code because TLS terminates at the PythonAnywhere edge proxy.<br>2. PythonAnywhere manages reverse-proxy cipher suites. For guaranteed immunity against Lucky 13, all traffic should negotiate modern **TLS 1.3** or **AEAD ciphers** (`TLS_AES_128_GCM_SHA256`, `ECDHE-RSA-AES128-GCM-SHA256`, `CHACHA20-POLY1305`).<br>3. **Recommended Edge Shield:** If using a custom domain (or for enterprise hosting), place **Cloudflare** in front of PythonAnywhere with **Minimum TLS Version: 1.2** and **TLS 1.3: Enabled**, which automatically disables legacy CBC ciphers at the edge. |
+

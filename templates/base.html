@@ -329,11 +329,11 @@
 </div>
 
 <!-- Bootstrap 5 Bundle JS -->
-<script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+<script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}" nonce="{{ csp_nonce }}"></script>
 <!-- Chart.js -->
-<script src="{% static 'vendor/chartjs/chart.umd.min.js' %}"></script>
+<script src="{% static 'vendor/chartjs/chart.umd.min.js' %}" nonce="{{ csp_nonce }}"></script>
 <!-- Portal Global JS -->
-<script src="{% static 'js/portal.js' %}?v=2.2"></script>
+<script src="{% static 'js/portal.js' %}?v=2.2" nonce="{{ csp_nonce }}"></script>
 
 {% block extra_scripts %}{% endblock %}
 </body>

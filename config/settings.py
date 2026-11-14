@@ -57,6 +57,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    # Custom: Security Headers (CSP, Permissions-Policy, CORP, COEP, X-XSS)
+    "accounts.middleware.SecurityHeadersMiddleware",
     # Custom: login throttling + idle timeout + audit context
     "accounts.middleware.LoginThrottleMiddleware",
     "accounts.middleware.IdleSessionTimeoutMiddleware",
@@ -153,15 +155,21 @@ CSRF_COOKIE_SECURE = not DEBUG
 # ─── HTTP Security Headers ──────────────────────────────────────────────────────
 X_FRAME_OPTIONS = "DENY"
 SECURE_CONTENT_TYPE_NOSNIFF = True
-SECURE_BROWSER_XSS_FILTER = True
+# Disabled legacy XSS auditor filter to prevent known browser side-channel vulnerabilities;
+# X-XSS-Protection: 0 and strict Content-Security-Policy (CSP) are enforced in SecurityHeadersMiddleware.
+SECURE_BROWSER_XSS_FILTER = False
 SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
 
+# CSP and COEP Configuration
+CSP_REPORT_ONLY = os.getenv("DJANGO_CSP_REPORT_ONLY", "False").lower() in ("true", "1")
+COEP_POLICY = os.getenv("DJANGO_COEP_POLICY", "unsafe-none")
+
 # Enforce HTTPS headers in production
 if not DEBUG:
-    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_SECONDS = int(os.getenv("DJANGO_SECURE_HSTS_SECONDS", "31536000"))
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = False  # Only enable after verifying HTTPS is stable
+    SECURE_HSTS_PRELOAD = os.getenv("DJANGO_SECURE_HSTS_PRELOAD", "True").lower() in ("true", "1")
     SECURE_SSL_REDIRECT = os.getenv("DJANGO_SECURE_SSL_REDIRECT", "False").lower() in ("true", "1")
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
