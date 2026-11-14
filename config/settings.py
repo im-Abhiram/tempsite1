@@ -6,7 +6,10 @@ Loads all configuration from environment variables (.env) via python-dotenv.
 from pathlib import Path
 import os
 import sys
-import dj_database_url
+try:
+    import dj_database_url
+except ImportError:
+    dj_database_url = None
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -89,7 +92,7 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 # ─── Database ──────────────────────────────────────────────────────────────────
 _db_url = os.getenv("DATABASE_URL")
-if _db_url:
+if _db_url and dj_database_url is not None:
     DATABASES = {
         "default": dj_database_url.parse(
             _db_url,
