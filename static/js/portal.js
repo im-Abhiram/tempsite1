@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const sidebar = document.getElementById('portalSidebar');
   const sidebarToggle = document.getElementById('sidebarToggle');
   const sidebarCollapseBtn = document.getElementById('sidebarCollapseBtn');
+  const sidebarBackdrop = document.getElementById('sidebarBackdrop');
 
   // Restore saved collapse state on desktop
   if (layout && window.innerWidth >= 1024) {
@@ -28,22 +29,58 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // Mobile drawer toggle
-  if (sidebarToggle && sidebar) {
+  // Mobile drawer controls with backdrop & body scroll lock
+  function closeMobileDrawer() {
+    if (sidebar) sidebar.classList.remove('show');
+    if (sidebarBackdrop) sidebarBackdrop.classList.remove('show');
+    document.body.classList.remove('sidebar-open');
+  }
+
+  function openMobileDrawer() {
+    if (sidebar) sidebar.classList.add('show');
+    if (sidebarBackdrop) sidebarBackdrop.classList.add('show');
+    document.body.classList.add('sidebar-open');
+  }
+
+  function toggleMobileDrawer() {
+    if (!sidebar) return;
+    if (sidebar.classList.contains('show')) {
+      closeMobileDrawer();
+    } else {
+      openMobileDrawer();
+    }
+  }
+
+  if (sidebarToggle) {
     sidebarToggle.addEventListener('click', function (e) {
       e.stopPropagation();
-      sidebar.classList.toggle('show');
-    });
-
-    // Close mobile drawer when clicking outside
-    document.addEventListener('click', function (e) {
-      if (window.innerWidth < 1024) {
-        if (sidebar.classList.contains('show') && !sidebar.contains(e.target) && !sidebarToggle.contains(e.target)) {
-          sidebar.classList.remove('show');
-        }
-      }
+      toggleMobileDrawer();
     });
   }
+
+  if (sidebarBackdrop) {
+    sidebarBackdrop.addEventListener('click', function (e) {
+      e.preventDefault();
+      closeMobileDrawer();
+    });
+  }
+
+  // Close mobile drawer when clicking outside or tapping any nav link
+  if (sidebar) {
+    sidebar.querySelectorAll('.nav-link').forEach(function (link) {
+      link.addEventListener('click', function () {
+        if (window.innerWidth < 1024) {
+          closeMobileDrawer();
+        }
+      });
+    });
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && sidebar && sidebar.classList.contains('show')) {
+      closeMobileDrawer();
+    }
+  });
 
   // ── 2. Live Topbar Digital Clock ──────────────────────────────────────
   const clockEl = document.getElementById('topbarLiveClock');
