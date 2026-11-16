@@ -37,13 +37,6 @@ class DailyAttendanceDashboard(AnyRoleMixin, View):
         except ValueError:
             work_date = timezone.localdate()
 
-        active_employees = (
-            Employee.objects
-            .filter(employment_status="ACTIVE")
-            .select_related("department", "assigned_shift")
-            .order_by("employee_id")
-        )
-
         records_qs = (
             AttendanceRecord.objects
             .filter(work_date=work_date)
@@ -52,12 +45,22 @@ class DailyAttendanceDashboard(AnyRoleMixin, View):
         )
         records_by_emp = {rec.employee_id: rec for rec in records_qs}
 
+        # Include all currently active employees, plus any employee who has an attendance record on this date
+        rec_emp_ids = set(records_by_emp.keys())
+        day_employees = (
+            Employee.objects
+            .filter(Q(employment_status="ACTIVE") | Q(id__in=rec_emp_ids))
+            .select_related("department", "assigned_shift")
+            .distinct()
+            .order_by("employee_id")
+        )
+
         status_filter = request.GET.get("status", "all").strip().lower()
         dept_filter = request.GET.get("department", "all").strip()
 
-        # Build roster entries for all active employees
+        # Build roster entries for all employees on this day's roster
         roster_items = []
-        for emp in active_employees:
+        for emp in day_employees:
             rec = records_by_emp.get(emp.id)
             is_marked = bool(rec)
             status_code = rec.status.lower() if rec else "unmarked"
@@ -97,17 +100,26 @@ class DailyAttendanceDashboard(AnyRoleMixin, View):
                 "is_visible_initially": is_visible_initially,
             })
 
+        # Calculate summary counts directly from roster items for mathematical consistency
+        if dept_filter and dept_filter != "all":
+            summary_pool = [
+                item for item in roster_items
+                if str(item["employee"].department_id) == str(dept_filter) or (
+                    item["employee"].department and item["employee"].department.name.lower() == dept_filter.lower()
+                )
+            ]
+        else:
+            summary_pool = roster_items
+
         summary = {
-            "total_active": active_employees.count(),
-            "unmarked": active_employees.count() - len(records_by_emp),
-            "present": records_qs.filter(status=AttendanceStatus.PRESENT).count(),
-            "absent": records_qs.filter(status=AttendanceStatus.ABSENT).count(),
-            "half_day": records_qs.filter(status=AttendanceStatus.HALF_DAY).count(),
-            "incomplete": records_qs.filter(status=AttendanceStatus.INCOMPLETE).count(),
-            "on_leave": records_qs.filter(status__in=[
-                AttendanceStatus.PAID_LEAVE, AttendanceStatus.UNPAID_LEAVE
-            ]).count(),
-            "late": records_qs.filter(is_late=True).count(),
+            "total_active": len(summary_pool),
+            "unmarked": sum(1 for item in summary_pool if not item["is_marked"]),
+            "present": sum(1 for item in summary_pool if item["is_marked"] and item["status_code"] == "present"),
+            "absent": sum(1 for item in summary_pool if item["is_marked"] and item["status_code"] == "absent"),
+            "half_day": sum(1 for item in summary_pool if item["is_marked"] and item["status_code"] == "half_day"),
+            "incomplete": sum(1 for item in summary_pool if item["is_marked"] and item["status_code"] == "incomplete"),
+            "on_leave": sum(1 for item in summary_pool if item["is_marked"] and item["status_code"] in ("paid_leave", "unpaid_leave")),
+            "late": sum(1 for item in summary_pool if item["is_late"]),
         }
 
         visible_count = sum(1 for item in roster_items if item["is_visible_initially"])

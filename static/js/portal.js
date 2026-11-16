@@ -280,13 +280,38 @@ function initPortal() {
       }
       let visibleCount = 0;
 
+      // Status counters within the active department
+      let deptTotal = 0;
+      let deptUnmarked = 0;
+      let deptPresent = 0;
+      let deptAbsent = 0;
+      let deptHalfDay = 0;
+      let deptIncomplete = 0;
+      let deptLate = 0;
+
       rows.forEach(function (row) {
         const rowStatus = (row.getAttribute('data-status') || '').toLowerCase();
         const rowDept = row.getAttribute('data-department') || '';
         const isLate = row.getAttribute('data-late') === 'true';
         const rowText = row.textContent.toLowerCase();
 
-        // 1. Status matching
+        // 1. Department matching
+        let matchesDept = true;
+        if (currentDept && currentDept !== 'all') {
+          matchesDept = (rowDept === currentDept);
+        }
+
+        if (matchesDept) {
+          deptTotal++;
+          if (rowStatus === 'unmarked') deptUnmarked++;
+          else if (rowStatus === 'present') deptPresent++;
+          else if (rowStatus === 'absent') deptAbsent++;
+          else if (rowStatus === 'half_day') deptHalfDay++;
+          else if (rowStatus === 'incomplete') deptIncomplete++;
+          if (isLate) deptLate++;
+        }
+
+        // 2. Status matching
         let matchesStatus = false;
         if (currentFilter === 'all') {
           matchesStatus = true;
@@ -306,12 +331,6 @@ function initPortal() {
           matchesStatus = (rowStatus === currentFilter);
         }
 
-        // 2. Department matching
-        let matchesDept = true;
-        if (currentDept && currentDept !== 'all') {
-          matchesDept = (rowDept === currentDept);
-        }
-
         // 3. Search query matching
         const matchesSearch = !searchQuery || rowText.includes(searchQuery);
 
@@ -322,6 +341,36 @@ function initPortal() {
           row.style.display = 'none';
         }
       });
+
+      // Update badge counts to match department
+      const badgeAll = document.querySelector('[data-filter-badge="all"]');
+      if (badgeAll) badgeAll.textContent = deptTotal;
+      const badgeUnmarked = document.querySelector('[data-filter-badge="unmarked"]');
+      if (badgeUnmarked) badgeUnmarked.textContent = deptUnmarked;
+      const badgePresent = document.querySelector('[data-filter-badge="present"]');
+      if (badgePresent) badgePresent.textContent = deptPresent;
+      const badgeAbsent = document.querySelector('[data-filter-badge="absent"]');
+      if (badgeAbsent) badgeAbsent.textContent = deptAbsent;
+      const badgeHalfDay = document.querySelector('[data-filter-badge="half_day"]');
+      if (badgeHalfDay) badgeHalfDay.textContent = deptHalfDay;
+      const badgeIncomplete = document.querySelector('[data-filter-badge="incomplete"]');
+      if (badgeIncomplete) badgeIncomplete.textContent = deptIncomplete;
+      const badgeLate = document.querySelector('[data-filter-badge="late"]');
+      if (badgeLate) badgeLate.textContent = deptLate;
+
+      // Update stat-card numbers
+      const cardPresent = document.querySelector('[data-card-value="present"]');
+      if (cardPresent) cardPresent.textContent = deptPresent;
+      const cardUnmarked = document.querySelector('[data-card-value="unmarked"]');
+      if (cardUnmarked) cardUnmarked.textContent = deptUnmarked;
+      const cardHalfDay = document.querySelector('[data-card-value="half_day"]');
+      if (cardHalfDay) cardHalfDay.textContent = deptHalfDay;
+      const cardAbsent = document.querySelector('[data-card-value="absent"]');
+      if (cardAbsent) cardAbsent.textContent = deptAbsent;
+      const cardIncomplete = document.querySelector('[data-card-value="incomplete"]');
+      if (cardIncomplete) cardIncomplete.textContent = deptIncomplete;
+      const cardLate = document.querySelector('[data-card-value="late"]');
+      if (cardLate) cardLate.textContent = deptLate;
 
       if (filterCountEl) {
         filterCountEl.textContent = visibleCount;

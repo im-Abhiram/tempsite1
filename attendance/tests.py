@@ -361,5 +361,59 @@ class AttendanceCalculationsAndLockTests(TestCase):
         self.assertEqual(res_other_dept.status_code, 200)
         self.assertEqual(res_other_dept.context["visible_count"], 0)
 
+    def test_daily_dashboard_unmarked_never_negative_with_inactive_employees(self):
+        """Unmarked summary must never become negative when inactive employees have records."""
+        self.client.force_login(self.accountant)
+        work_date = datetime.date(2026, 11, 10)
+
+        # 1. Mark self.emp present on work_date
+        AttendanceRecord.objects.create(
+            employee=self.emp,
+            work_date=work_date,
+            status=AttendanceStatus.PRESENT,
+            check_in=timezone.make_aware(datetime.datetime(2026, 11, 10, 9, 0)),
+            check_out=timezone.make_aware(datetime.datetime(2026, 11, 10, 18, 0)),
+            created_by=self.accountant,
+        )
+
+        # 2. Create a terminated employee who ALSO has a record on work_date
+        inactive_emp = Employee.objects.create(
+            employee_id="EMP-INACT",
+            first_name="Old",
+            last_name="Worker",
+            phone="9876543999",
+            residential_address="Old Address",
+            emergency_contact_name="Contact",
+            emergency_contact_phone="9876543998",
+            department=self.dept,
+            designation=self.desig,
+            assigned_shift=self.shift,
+            date_of_joining=datetime.date(2025, 1, 1),
+            employment_status=EmploymentStatus.TERMINATED,
+            employment_type=EmploymentType.FULL_TIME,
+            salary_calculation_method=SalaryMethod.HOURLY,
+            base_salary_rate=Decimal("150.00"),
+            standard_working_hours=Decimal("8.00"),
+            created_by=self.superadmin,
+        )
+        AttendanceRecord.objects.create(
+            employee=inactive_emp,
+            work_date=work_date,
+            status=AttendanceStatus.PRESENT,
+            check_in=timezone.make_aware(datetime.datetime(2026, 11, 10, 9, 0)),
+            check_out=timezone.make_aware(datetime.datetime(2026, 11, 10, 18, 0)),
+            created_by=self.accountant,
+        )
+
+        # Request dashboard for work_date
+        res = self.client.get(reverse("attendance:daily_dashboard") + f"?date={work_date}")
+        self.assertEqual(res.status_code, 200)
+        summary = res.context["summary"]
+
+        # Crucial check: unmarked must be 0 (all employees on roster are marked), NEVER -1
+        self.assertGreaterEqual(summary["unmarked"], 0)
+        self.assertEqual(summary["unmarked"], 0)
+        self.assertEqual(summary["present"], 2)
+
 
 
