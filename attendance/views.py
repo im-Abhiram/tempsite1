@@ -52,14 +52,49 @@ class DailyAttendanceDashboard(AnyRoleMixin, View):
         )
         records_by_emp = {rec.employee_id: rec for rec in records_qs}
 
+        status_filter = request.GET.get("status", "all").strip().lower()
+        dept_filter = request.GET.get("department", "all").strip()
+
         # Build roster entries for all active employees
         roster_items = []
         for emp in active_employees:
             rec = records_by_emp.get(emp.id)
+            is_marked = bool(rec)
+            status_code = rec.status.lower() if rec else "unmarked"
+            is_late = bool(rec and rec.is_late)
+
+            # Check initial visibility based on status and department filter
+            matches_status = True
+            if status_filter == "unmarked":
+                matches_status = not is_marked
+            elif status_filter == "present":
+                matches_status = (status_code == "present")
+            elif status_filter == "absent":
+                matches_status = (status_code == "absent")
+            elif status_filter == "half_day":
+                matches_status = (status_code == "half_day")
+            elif status_filter == "incomplete":
+                matches_status = (status_code == "incomplete")
+            elif status_filter == "late":
+                matches_status = is_late
+            elif status_filter != "all":
+                matches_status = (status_code == status_filter)
+
+            matches_dept = True
+            if dept_filter and dept_filter != "all":
+                matches_dept = str(emp.department_id) == str(dept_filter) or (
+                    emp.department and emp.department.name.lower() == dept_filter.lower()
+                )
+
+            is_visible_initially = matches_status and matches_dept
+
             roster_items.append({
                 "employee": emp,
                 "record": rec,
-                "is_marked": bool(rec),
+                "is_marked": is_marked,
+                "status_code": status_code,
+                "is_late": is_late,
+                "is_visible_initially": is_visible_initially,
             })
 
         summary = {
@@ -75,7 +110,8 @@ class DailyAttendanceDashboard(AnyRoleMixin, View):
             "late": records_qs.filter(is_late=True).count(),
         }
 
-        status_filter = request.GET.get("status", "all").strip().lower()
+        visible_count = sum(1 for item in roster_items if item["is_visible_initially"])
+        departments = Department.objects.all().order_by("name")
 
         return render(request, self.template_name, {
             "roster_items": roster_items,
@@ -84,6 +120,9 @@ class DailyAttendanceDashboard(AnyRoleMixin, View):
             "summary": summary,
             "today": timezone.localdate(),
             "status_filter": status_filter,
+            "dept_filter": dept_filter,
+            "departments": departments,
+            "visible_count": visible_count,
         })
 
 

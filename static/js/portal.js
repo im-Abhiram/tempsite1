@@ -4,7 +4,7 @@
  * global search keyboard shortcut, alert auto-dismiss, and form submit guards.
  */
 
-document.addEventListener('DOMContentLoaded', function () {
+function initPortal() {
   // ── 1. Desktop Sidebar Collapse & Mobile Drawer ───────────────────────
   const layout = document.querySelector('.portal-layout');
   const sidebar = document.getElementById('portalSidebar');
@@ -13,11 +13,13 @@ document.addEventListener('DOMContentLoaded', function () {
   const sidebarBackdrop = document.getElementById('sidebarBackdrop');
 
   // Restore saved collapse state on desktop
-  if (layout && window.innerWidth >= 1024) {
-    if (localStorage.getItem('portal_sidebar_collapsed') === 'true') {
-      layout.classList.add('sidebar-collapsed');
+  try {
+    if (layout && window.innerWidth >= 1024) {
+      if (localStorage.getItem('portal_sidebar_collapsed') === 'true') {
+        layout.classList.add('sidebar-collapsed');
+      }
     }
-  }
+  } catch (err) {}
 
   // Desktop collapse toggle
   if (sidebarCollapseBtn && layout) {
@@ -25,7 +27,9 @@ document.addEventListener('DOMContentLoaded', function () {
       e.preventDefault();
       layout.classList.toggle('sidebar-collapsed');
       const isCollapsed = layout.classList.contains('sidebar-collapsed');
-      localStorage.setItem('portal_sidebar_collapsed', isCollapsed ? 'true' : 'false');
+      try {
+        localStorage.setItem('portal_sidebar_collapsed', isCollapsed ? 'true' : 'false');
+      } catch (err) {}
     });
   }
 
@@ -248,17 +252,37 @@ document.addEventListener('DOMContentLoaded', function () {
   const noMatchRow = document.getElementById('noFilterMatchRow');
   const noMatchMsg = document.getElementById('noFilterMatchMessage');
   const dailySearchInput = document.querySelector('[data-table-filter="dailyAttendanceTable"]');
+  const dailyDeptSelect = document.getElementById('dailyDeptFilter');
 
   if (dailyTable && statusFilterTriggers.length > 0) {
     let currentFilter = 'all';
+    let currentDept = 'all';
+
+    // Read initial filters from URL params if present
+    try {
+      const initialUrl = new URL(window.location.href);
+      const urlStatus = initialUrl.searchParams.get('status');
+      if (urlStatus) {
+        currentFilter = urlStatus.toLowerCase();
+      }
+      const urlDept = initialUrl.searchParams.get('department');
+      if (urlDept && dailyDeptSelect) {
+        currentDept = urlDept;
+        dailyDeptSelect.value = urlDept;
+      }
+    } catch (err) {}
 
     function updateAttendanceFilter() {
       const rows = dailyTable.querySelectorAll('tbody tr:not(#noFilterMatchRow)');
       const searchQuery = dailySearchInput ? dailySearchInput.value.toLowerCase().trim() : '';
+      if (dailyDeptSelect) {
+        currentDept = dailyDeptSelect.value;
+      }
       let visibleCount = 0;
 
       rows.forEach(function (row) {
         const rowStatus = (row.getAttribute('data-status') || '').toLowerCase();
+        const rowDept = row.getAttribute('data-department') || '';
         const isLate = row.getAttribute('data-late') === 'true';
         const rowText = row.textContent.toLowerCase();
 
@@ -267,25 +291,31 @@ document.addEventListener('DOMContentLoaded', function () {
         if (currentFilter === 'all') {
           matchesStatus = true;
         } else if (currentFilter === 'unmarked') {
-          matchesStatus = rowStatus === 'unmarked';
+          matchesStatus = (rowStatus === 'unmarked');
         } else if (currentFilter === 'present') {
-          matchesStatus = rowStatus === 'present';
+          matchesStatus = (rowStatus === 'present');
         } else if (currentFilter === 'absent') {
-          matchesStatus = rowStatus === 'absent';
+          matchesStatus = (rowStatus === 'absent');
         } else if (currentFilter === 'half_day') {
-          matchesStatus = rowStatus === 'half_day';
+          matchesStatus = (rowStatus === 'half_day');
         } else if (currentFilter === 'incomplete') {
-          matchesStatus = rowStatus === 'incomplete';
+          matchesStatus = (rowStatus === 'incomplete');
         } else if (currentFilter === 'late') {
           matchesStatus = isLate;
         } else {
-          matchesStatus = rowStatus === currentFilter;
+          matchesStatus = (rowStatus === currentFilter);
         }
 
-        // 2. Search query matching
+        // 2. Department matching
+        let matchesDept = true;
+        if (currentDept && currentDept !== 'all') {
+          matchesDept = (rowDept === currentDept);
+        }
+
+        // 3. Search query matching
         const matchesSearch = !searchQuery || rowText.includes(searchQuery);
 
-        if (matchesStatus && matchesSearch) {
+        if (matchesStatus && matchesDept && matchesSearch) {
           row.style.display = '';
           visibleCount++;
         } else {
@@ -308,6 +338,7 @@ document.addEventListener('DOMContentLoaded', function () {
             else if (currentFilter === 'half_day') label = 'Half Day';
             else if (currentFilter === 'incomplete') label = 'Incomplete';
             else if (currentFilter === 'late') label = 'Late Arrivals';
+            else if (currentFilter === 'all') label = 'All';
             noMatchMsg.textContent = `No staff records found for status "${label}"${searchQuery ? ` matching "${searchQuery}"` : ''}.`;
           }
         } else {
@@ -321,16 +352,28 @@ document.addEventListener('DOMContentLoaded', function () {
         if (btnFilter === currentFilter) {
           btn.classList.add('active');
           btn.classList.remove('btn-outline-secondary', 'btn-outline-warning', 'btn-outline-success', 'btn-outline-danger');
-          if (btnFilter === 'unmarked') btn.classList.add('btn-warning');
-          else if (btnFilter === 'present') btn.classList.add('btn-success');
-          else if (btnFilter === 'absent') btn.classList.add('btn-danger');
-          else btn.classList.add('btn-teal');
+          if (btnFilter === 'unmarked') {
+            btn.classList.add('btn-warning', 'text-dark');
+          } else if (btnFilter === 'present') {
+            btn.classList.add('btn-success', 'text-white');
+          } else if (btnFilter === 'absent') {
+            btn.classList.add('btn-danger', 'text-white');
+          } else if (btnFilter === 'all') {
+            btn.classList.add('btn-secondary', 'text-white');
+          } else {
+            btn.classList.add('btn-teal', 'text-white');
+          }
         } else {
-          btn.classList.remove('active', 'btn-warning', 'btn-success', 'btn-danger', 'btn-teal');
-          if (btnFilter === 'unmarked') btn.classList.add('btn-outline-warning');
-          else if (btnFilter === 'present') btn.classList.add('btn-outline-success');
-          else if (btnFilter === 'absent') btn.classList.add('btn-outline-danger');
-          else btn.classList.add('btn-outline-secondary');
+          btn.classList.remove('active', 'btn-warning', 'btn-success', 'btn-danger', 'btn-teal', 'btn-secondary', 'text-dark', 'text-white');
+          if (btnFilter === 'unmarked') {
+            btn.classList.add('btn-outline-warning');
+          } else if (btnFilter === 'present') {
+            btn.classList.add('btn-outline-success');
+          } else if (btnFilter === 'absent') {
+            btn.classList.add('btn-outline-danger');
+          } else {
+            btn.classList.add('btn-outline-secondary');
+          }
         }
       });
 
@@ -343,6 +386,40 @@ document.addEventListener('DOMContentLoaded', function () {
           card.classList.remove('active-stat-card');
         }
       });
+
+      // Synchronize URL query parameters and form next targets
+      try {
+        const url = new URL(window.location.href);
+        if (currentFilter === 'all') {
+          url.searchParams.delete('status');
+        } else {
+          url.searchParams.set('status', currentFilter);
+        }
+
+        if (!currentDept || currentDept === 'all') {
+          url.searchParams.delete('department');
+        } else {
+          url.searchParams.set('department', currentDept);
+        }
+
+        window.history.replaceState({}, '', url.toString());
+
+        // Update hidden "next" inputs in attendance quick-mark forms so actions return to current filter
+        const fullPath = url.pathname + url.search;
+        document.querySelectorAll('input[name="next"]').forEach(function (nextInput) {
+          nextInput.value = fullPath;
+        });
+
+        // Update date picker hidden inputs
+        const datePickerStatus = document.getElementById('datePickerStatus');
+        if (datePickerStatus) {
+          datePickerStatus.value = currentFilter;
+        }
+        const datePickerDept = document.getElementById('datePickerDept');
+        if (datePickerDept) {
+          datePickerDept.value = currentDept;
+        }
+      } catch (err) {}
     }
 
     // Click handler for status filter triggers (pills and stat cards)
@@ -361,21 +438,16 @@ document.addEventListener('DOMContentLoaded', function () {
         currentFilter = requestedFilter;
       }
 
-      // Sync URL parameter (?status=...) without page reload
-      try {
-        const url = new URL(window.location.href);
-        if (currentFilter === 'all') {
-          url.searchParams.delete('status');
-        } else {
-          url.searchParams.set('status', currentFilter);
-        }
-        window.history.replaceState({}, '', url.toString());
-      } catch (err) {
-        // Fallback if URL API not supported
-      }
-
       updateAttendanceFilter();
     });
+
+    // Department dropdown change handler
+    if (dailyDeptSelect) {
+      dailyDeptSelect.addEventListener('change', function () {
+        currentDept = dailyDeptSelect.value;
+        updateAttendanceFilter();
+      });
+    }
 
     // Keyboard accessibility for stat cards (Enter or Space triggers filter)
     statCards.forEach(function (card) {
@@ -393,15 +465,13 @@ document.addEventListener('DOMContentLoaded', function () {
       dailySearchInput.addEventListener('keyup', updateAttendanceFilter);
     }
 
-    // Initialize from URL parameter (?status=...)
-    try {
-      const initialUrl = new URL(window.location.href);
-      const urlStatus = initialUrl.searchParams.get('status');
-      if (urlStatus) {
-        currentFilter = urlStatus.toLowerCase();
-      }
-    } catch (err) {}
-
     updateAttendanceFilter();
   }
-});
+}
+
+// ── Initialize Portal Execution (Safe DOM ready guard) ──────────────────
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initPortal);
+} else {
+  initPortal();
+}

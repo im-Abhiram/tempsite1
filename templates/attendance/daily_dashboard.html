@@ -10,13 +10,19 @@
   <div class="card-body-portal p-3">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
       <div class="d-flex align-items-center gap-2">
-        <form method="get" class="d-flex align-items-center gap-2 m-0">
+        <form method="get" class="d-flex align-items-center gap-2 m-0" id="datePickerForm">
           <label for="workDateInput" class="fw-semibold small text-muted text-nowrap">Select Date:</label>
           <input type="date" id="workDateInput" name="date" value="{{ work_date|date:'Y-m-d' }}" class="form-control form-control-sm" data-auto-submit="true">
+          {% if status_filter and status_filter != 'all' %}
+            <input type="hidden" name="status" id="datePickerStatus" value="{{ status_filter }}">
+          {% endif %}
+          {% if dept_filter and dept_filter != 'all' %}
+            <input type="hidden" name="department" id="datePickerDept" value="{{ dept_filter }}">
+          {% endif %}
           <button type="submit" class="btn btn-sm btn-outline-secondary">Go</button>
         </form>
         {% if work_date != today %}
-          <a href="{% url 'attendance:daily_dashboard' %}" class="btn btn-sm btn-outline-teal">Jump to Today</a>
+          <a href="{% url 'attendance:daily_dashboard' %}{% if status_filter != 'all' %}?status={{ status_filter }}{% endif %}" class="btn btn-sm btn-outline-teal">Jump to Today</a>
         {% endif %}
       </div>
 
@@ -48,75 +54,87 @@
 <!-- Daily Status Stats Row (Click any card to filter list) -->
 <div class="row g-3 mb-4">
   <div class="col-xl-2 col-md-4 col-6">
-    <div class="stat-card green clickable-card p-3" data-status-filter="present" role="button" tabindex="0" title="Click to view Present staff ({{ summary.present }})">
-      <div class="stat-icon green" style="width: 40px; height: 40px; font-size: 18px;">
-        <i class="bi bi-check2-circle"></i>
+    <a href="?date={{ work_date|date:'Y-m-d' }}&status=present{% if dept_filter != 'all' %}&department={{ dept_filter }}{% endif %}" class="text-decoration-none">
+      <div class="stat-card green clickable-card p-3 {% if status_filter == 'present' %}active-stat-card{% endif %}" data-status-filter="present" role="button" tabindex="0" title="Click to view Present staff ({{ summary.present }})">
+        <div class="stat-icon green" style="width: 40px; height: 40px; font-size: 18px;">
+          <i class="bi bi-check2-circle"></i>
+        </div>
+        <div>
+          <p class="stat-label">Present</p>
+          <h4 class="stat-value" style="font-size: 22px;">{{ summary.present }}</h4>
+        </div>
       </div>
-      <div>
-        <p class="stat-label">Present</p>
-        <h4 class="stat-value" style="font-size: 22px;">{{ summary.present }}</h4>
-      </div>
-    </div>
+    </a>
   </div>
 
   <div class="col-xl-2 col-md-4 col-6">
-    <div class="stat-card {% if summary.unmarked > 0 %}amber{% else %}teal{% endif %} clickable-card p-3" data-status-filter="unmarked" role="button" tabindex="0" title="Click to view Pending / Unmarked staff ({{ summary.unmarked }})">
-      <div class="stat-icon {% if summary.unmarked > 0 %}amber{% else %}teal{% endif %}" style="width: 40px; height: 40px; font-size: 18px;">
-        <i class="bi bi-hourglass-top"></i>
+    <a href="?date={{ work_date|date:'Y-m-d' }}&status=unmarked{% if dept_filter != 'all' %}&department={{ dept_filter }}{% endif %}" class="text-decoration-none">
+      <div class="stat-card {% if summary.unmarked > 0 %}amber{% else %}teal{% endif %} clickable-card p-3 {% if status_filter == 'unmarked' %}active-stat-card{% endif %}" data-status-filter="unmarked" role="button" tabindex="0" title="Click to view Pending / Unmarked staff ({{ summary.unmarked }})">
+        <div class="stat-icon {% if summary.unmarked > 0 %}amber{% else %}teal{% endif %}" style="width: 40px; height: 40px; font-size: 18px;">
+          <i class="bi bi-hourglass-top"></i>
+        </div>
+        <div>
+          <p class="stat-label">Pending / Unmarked</p>
+          <h4 class="stat-value" style="font-size: 22px;">{{ summary.unmarked }}</h4>
+        </div>
       </div>
-      <div>
-        <p class="stat-label">Pending / Unmarked</p>
-        <h4 class="stat-value" style="font-size: 22px;">{{ summary.unmarked }}</h4>
-      </div>
-    </div>
+    </a>
   </div>
 
   <div class="col-xl-2 col-md-4 col-6">
-    <div class="stat-card amber clickable-card p-3" data-status-filter="half_day" role="button" tabindex="0" title="Click to view Half Day staff ({{ summary.half_day }})">
-      <div class="stat-icon amber" style="width: 40px; height: 40px; font-size: 18px;">
-        <i class="bi bi-hourglass-split"></i>
+    <a href="?date={{ work_date|date:'Y-m-d' }}&status=half_day{% if dept_filter != 'all' %}&department={{ dept_filter }}{% endif %}" class="text-decoration-none">
+      <div class="stat-card amber clickable-card p-3 {% if status_filter == 'half_day' %}active-stat-card{% endif %}" data-status-filter="half_day" role="button" tabindex="0" title="Click to view Half Day staff ({{ summary.half_day }})">
+        <div class="stat-icon amber" style="width: 40px; height: 40px; font-size: 18px;">
+          <i class="bi bi-hourglass-split"></i>
+        </div>
+        <div>
+          <p class="stat-label">Half Day</p>
+          <h4 class="stat-value" style="font-size: 22px;">{{ summary.half_day }}</h4>
+        </div>
       </div>
-      <div>
-        <p class="stat-label">Half Day</p>
-        <h4 class="stat-value" style="font-size: 22px;">{{ summary.half_day }}</h4>
-      </div>
-    </div>
+    </a>
   </div>
 
   <div class="col-xl-2 col-md-4 col-6">
-    <div class="stat-card red clickable-card p-3" data-status-filter="absent" role="button" tabindex="0" title="Click to view Absent staff ({{ summary.absent }})">
-      <div class="stat-icon red" style="width: 40px; height: 40px; font-size: 18px;">
-        <i class="bi bi-x-circle"></i>
+    <a href="?date={{ work_date|date:'Y-m-d' }}&status=absent{% if dept_filter != 'all' %}&department={{ dept_filter }}{% endif %}" class="text-decoration-none">
+      <div class="stat-card red clickable-card p-3 {% if status_filter == 'absent' %}active-stat-card{% endif %}" data-status-filter="absent" role="button" tabindex="0" title="Click to view Absent staff ({{ summary.absent }})">
+        <div class="stat-icon red" style="width: 40px; height: 40px; font-size: 18px;">
+          <i class="bi bi-x-circle"></i>
+        </div>
+        <div>
+          <p class="stat-label">Absent</p>
+          <h4 class="stat-value" style="font-size: 22px;">{{ summary.absent }}</h4>
+        </div>
       </div>
-      <div>
-        <p class="stat-label">Absent</p>
-        <h4 class="stat-value" style="font-size: 22px;">{{ summary.absent }}</h4>
-      </div>
-    </div>
+    </a>
   </div>
 
   <div class="col-xl-2 col-md-4 col-6">
-    <div class="stat-card blue clickable-card p-3" data-status-filter="incomplete" role="button" tabindex="0" title="Click to view Incomplete staff ({{ summary.incomplete }})">
-      <div class="stat-icon blue" style="width: 40px; height: 40px; font-size: 18px;">
-        <i class="bi bi-exclamation-diamond"></i>
+    <a href="?date={{ work_date|date:'Y-m-d' }}&status=incomplete{% if dept_filter != 'all' %}&department={{ dept_filter }}{% endif %}" class="text-decoration-none">
+      <div class="stat-card blue clickable-card p-3 {% if status_filter == 'incomplete' %}active-stat-card{% endif %}" data-status-filter="incomplete" role="button" tabindex="0" title="Click to view Incomplete staff ({{ summary.incomplete }})">
+        <div class="stat-icon blue" style="width: 40px; height: 40px; font-size: 18px;">
+          <i class="bi bi-exclamation-diamond"></i>
+        </div>
+        <div>
+          <p class="stat-label">Incomplete</p>
+          <h4 class="stat-value" style="font-size: 22px;">{{ summary.incomplete }}</h4>
+        </div>
       </div>
-      <div>
-        <p class="stat-label">Incomplete</p>
-        <h4 class="stat-value" style="font-size: 22px;">{{ summary.incomplete }}</h4>
-      </div>
-    </div>
+    </a>
   </div>
 
   <div class="col-xl-2 col-md-4 col-6">
-    <div class="stat-card navy clickable-card p-3" data-status-filter="late" role="button" tabindex="0" title="Click to view Late Arrivals ({{ summary.late }})">
-      <div class="stat-icon navy" style="width: 40px; height: 40px; font-size: 18px;">
-        <i class="bi bi-alarm"></i>
+    <a href="?date={{ work_date|date:'Y-m-d' }}&status=late{% if dept_filter != 'all' %}&department={{ dept_filter }}{% endif %}" class="text-decoration-none">
+      <div class="stat-card navy clickable-card p-3 {% if status_filter == 'late' %}active-stat-card{% endif %}" data-status-filter="late" role="button" tabindex="0" title="Click to view Late Arrivals ({{ summary.late }})">
+        <div class="stat-icon navy" style="width: 40px; height: 40px; font-size: 18px;">
+          <i class="bi bi-alarm"></i>
+        </div>
+        <div>
+          <p class="stat-label">Late Arrivals</p>
+          <h4 class="stat-value" style="font-size: 22px;">{{ summary.late }}</h4>
+        </div>
       </div>
-      <div>
-        <p class="stat-label">Late Arrivals</p>
-        <h4 class="stat-value" style="font-size: 22px;">{{ summary.late }}</h4>
-      </div>
-    </div>
+    </a>
   </div>
 </div>
 
@@ -128,6 +146,13 @@
       <h6 class="mb-0 fw-bold">Active Staff Attendance Roster for {{ work_date|date:"l, d F Y" }}</h6>
     </div>
     <div class="d-flex align-items-center gap-2">
+      <!-- Department Filter Dropdown -->
+      <select id="dailyDeptFilter" class="form-select form-select-sm w-auto" title="Filter by Department">
+        <option value="all" {% if dept_filter == 'all' %}selected{% endif %}>All Departments</option>
+        {% for dept in departments %}
+          <option value="{{ dept.pk }}" {% if dept_filter == dept.pk|stringformat:"s" %}selected{% endif %}>{{ dept.name }}</option>
+        {% endfor %}
+      </select>
       <input type="text" data-table-filter="dailyAttendanceTable" class="form-control form-control-sm w-auto" placeholder="Quick search employee...">
     </div>
   </div>
@@ -136,32 +161,32 @@
   <div class="px-3 py-2 border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2" style="background-color: rgba(255, 255, 255, 0.02);">
     <div class="d-flex flex-wrap align-items-center gap-1" id="dailyStatusFilterBar">
       <span class="small text-muted fw-semibold me-1"><i class="bi bi-funnel me-1"></i>Filter:</span>
-      <button type="button" class="btn btn-sm btn-outline-secondary filter-pill-btn active" data-status-filter="all">
+      <a href="?date={{ work_date|date:'Y-m-d' }}&status=all{% if dept_filter != 'all' %}&department={{ dept_filter }}{% endif %}" class="btn btn-sm filter-pill-btn {% if status_filter == 'all' %}active btn-secondary text-white{% else %}btn-outline-secondary{% endif %}" data-status-filter="all">
         All <span class="badge bg-secondary ms-1">{{ summary.total_active }}</span>
-      </button>
-      <button type="button" class="btn btn-sm btn-outline-warning filter-pill-btn" data-status-filter="unmarked">
+      </a>
+      <a href="?date={{ work_date|date:'Y-m-d' }}&status=unmarked{% if dept_filter != 'all' %}&department={{ dept_filter }}{% endif %}" class="btn btn-sm filter-pill-btn {% if status_filter == 'unmarked' %}active btn-warning text-dark{% else %}btn-outline-warning{% endif %}" data-status-filter="unmarked">
         <i class="bi bi-hourglass-top me-1"></i>Pending / Unmarked <span class="badge bg-warning text-dark ms-1">{{ summary.unmarked }}</span>
-      </button>
-      <button type="button" class="btn btn-sm btn-outline-success filter-pill-btn" data-status-filter="present">
+      </a>
+      <a href="?date={{ work_date|date:'Y-m-d' }}&status=present{% if dept_filter != 'all' %}&department={{ dept_filter }}{% endif %}" class="btn btn-sm filter-pill-btn {% if status_filter == 'present' %}active btn-success text-white{% else %}btn-outline-success{% endif %}" data-status-filter="present">
         <i class="bi bi-check2-circle me-1"></i>Present <span class="badge bg-success ms-1">{{ summary.present }}</span>
-      </button>
-      <button type="button" class="btn btn-sm btn-outline-danger filter-pill-btn" data-status-filter="absent">
+      </a>
+      <a href="?date={{ work_date|date:'Y-m-d' }}&status=absent{% if dept_filter != 'all' %}&department={{ dept_filter }}{% endif %}" class="btn btn-sm filter-pill-btn {% if status_filter == 'absent' %}active btn-danger text-white{% else %}btn-outline-danger{% endif %}" data-status-filter="absent">
         <i class="bi bi-x-circle me-1"></i>Absent <span class="badge bg-danger ms-1">{{ summary.absent }}</span>
-      </button>
-      <button type="button" class="btn btn-sm btn-outline-secondary filter-pill-btn" data-status-filter="half_day">
+      </a>
+      <a href="?date={{ work_date|date:'Y-m-d' }}&status=half_day{% if dept_filter != 'all' %}&department={{ dept_filter }}{% endif %}" class="btn btn-sm filter-pill-btn {% if status_filter == 'half_day' %}active btn-teal text-white{% else %}btn-outline-secondary{% endif %}" data-status-filter="half_day">
         Half Day <span class="badge bg-secondary ms-1">{{ summary.half_day }}</span>
-      </button>
-      <button type="button" class="btn btn-sm btn-outline-secondary filter-pill-btn" data-status-filter="incomplete">
+      </a>
+      <a href="?date={{ work_date|date:'Y-m-d' }}&status=incomplete{% if dept_filter != 'all' %}&department={{ dept_filter }}{% endif %}" class="btn btn-sm filter-pill-btn {% if status_filter == 'incomplete' %}active btn-teal text-white{% else %}btn-outline-secondary{% endif %}" data-status-filter="incomplete">
         Incomplete <span class="badge bg-secondary ms-1">{{ summary.incomplete }}</span>
-      </button>
+      </a>
       {% if summary.late > 0 %}
-      <button type="button" class="btn btn-sm btn-outline-secondary filter-pill-btn" data-status-filter="late">
+      <a href="?date={{ work_date|date:'Y-m-d' }}&status=late{% if dept_filter != 'all' %}&department={{ dept_filter }}{% endif %}" class="btn btn-sm filter-pill-btn {% if status_filter == 'late' %}active btn-teal text-white{% else %}btn-outline-secondary{% endif %}" data-status-filter="late">
         <i class="bi bi-alarm me-1"></i>Late <span class="badge bg-secondary ms-1">{{ summary.late }}</span>
-      </button>
+      </a>
       {% endif %}
     </div>
     <div class="small text-muted" id="filterStatusCount">
-      Showing <span id="visibleRowCount" class="fw-bold text-teal">{{ summary.total_active }}</span> of {{ summary.total_active }} staff
+      Showing <span id="visibleRowCount" class="fw-bold text-teal">{{ visible_count }}</span> of {{ summary.total_active }} staff
     </div>
   </div>
 
@@ -181,19 +206,25 @@
         </tr>
       </thead>
       <tbody>
-        <tr id="noFilterMatchRow" style="display: none;">
+        <tr id="noFilterMatchRow" {% if visible_count > 0 %}style="display: none;"{% endif %}>
           <td colspan="9" class="text-center py-5 text-muted">
             <i class="bi bi-funnel text-teal fs-2 d-block mb-2"></i>
-            <h6 class="fw-semibold mb-1" id="noFilterMatchMessage">No records match the selected filter.</h6>
+            <h6 class="fw-semibold mb-1" id="noFilterMatchMessage">
+              {% if visible_count == 0 and summary.total_active > 0 %}
+                No staff records match the selected filter.
+              {% else %}
+                No records match the selected filter.
+              {% endif %}
+            </h6>
             <p class="small text-muted mb-3">Try choosing a different status filter or clearing your search query.</p>
-            <button type="button" class="btn btn-sm btn-outline-teal" data-status-filter="all">
+            <a href="?date={{ work_date|date:'Y-m-d' }}&status=all" class="btn btn-sm btn-outline-teal" data-status-filter="all">
               <i class="bi bi-arrow-counterclockwise me-1"></i>Reset Filter to View All
-            </button>
+            </a>
           </td>
         </tr>
         {% for item in roster_items %}
         {% with emp=item.employee rec=item.record %}
-        <tr data-status="{% if not item.is_marked %}unmarked{% else %}{{ rec.status|lower }}{% endif %}" {% if rec and rec.is_late %}data-late="true"{% endif %}>
+        <tr data-status="{{ item.status_code }}" data-department="{{ emp.department_id|default:'' }}" {% if item.is_late %}data-late="true"{% endif %} {% if not item.is_visible_initially %}style="display: none;"{% endif %}>
           <td>
             <div class="d-flex align-items-center gap-2">
               {% if emp.photo %}

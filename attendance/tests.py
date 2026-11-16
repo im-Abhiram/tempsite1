@@ -334,5 +334,32 @@ class AttendanceCalculationsAndLockTests(TestCase):
         # Row status attributes for client filtering
         self.assertContains(res, 'data-status="unmarked"')
 
+    def test_daily_dashboard_server_side_status_and_dept_filters(self):
+        """Daily dashboard correctly applies status and department query filters to context and initial visibility."""
+        self.client.force_login(self.accountant)
+
+        # 1. Status filter: unmarked
+        res_unmarked = self.client.get(reverse("attendance:daily_dashboard") + "?status=unmarked")
+        self.assertEqual(res_unmarked.status_code, 200)
+        self.assertEqual(res_unmarked.context["status_filter"], "unmarked")
+        self.assertEqual(res_unmarked.context["visible_count"], 1)
+
+        # 2. Status filter: present (no punches yet -> count 0, rows initially hidden)
+        res_present = self.client.get(reverse("attendance:daily_dashboard") + "?status=present")
+        self.assertEqual(res_present.status_code, 200)
+        self.assertEqual(res_present.context["status_filter"], "present")
+        self.assertEqual(res_present.context["visible_count"], 0)
+        self.assertContains(res_present, 'style="display: none;"')
+
+        # 3. Department filter matching
+        res_dept = self.client.get(reverse("attendance:daily_dashboard") + f"?department={self.dept.pk}")
+        self.assertEqual(res_dept.status_code, 200)
+        self.assertEqual(res_dept.context["visible_count"], 1)
+
+        # 4. Department filter non-matching
+        res_other_dept = self.client.get(reverse("attendance:daily_dashboard") + "?department=99999")
+        self.assertEqual(res_other_dept.status_code, 200)
+        self.assertEqual(res_other_dept.context["visible_count"], 0)
+
 
 
