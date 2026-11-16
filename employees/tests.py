@@ -261,4 +261,34 @@ class EmployeeManagementTests(TestCase):
         shift_res = self.client.get(reverse("employees:shift_edit", args=[shift.pk]))
         self.assertEqual(shift_res.status_code, 403)
 
+    def test_employee_list_quick_mark_buttons_hidden_when_marked_today(self):
+        """When an employee is already marked for today, 1-click quick mark buttons are omitted and status badge is shown."""
+        from django.utils import timezone
+        from attendance.models import AttendanceRecord, AttendanceStatus
+        self.client.force_login(self.accountant)
+
+        today = timezone.localdate()
+
+        # 1. Unmarked initially: Quick 1-click buttons are visible
+        res1 = self.client.get(reverse("employees:employee_list"))
+        self.assertEqual(res1.status_code, 200)
+        self.assertContains(res1, "Quick 1-Click Mark Present Today")
+        self.assertContains(res1, "Quick 1-Click Mark Absent Today")
+
+        # 2. Mark employee present for today
+        AttendanceRecord.objects.create(
+            employee=self.employee,
+            work_date=today,
+            status=AttendanceStatus.PRESENT,
+            net_working_hours=Decimal("8.00"),
+        )
+
+        # 3. Reload employee list: Quick 1-click buttons are no longer rendered, Present badge is shown
+        res2 = self.client.get(reverse("employees:employee_list"))
+        self.assertEqual(res2.status_code, 200)
+        self.assertNotContains(res2, "Quick 1-Click Mark Present Today")
+        self.assertNotContains(res2, "Quick 1-Click Mark Absent Today")
+        self.assertContains(res2, "Marked Present Today")
+
+
 

@@ -11,6 +11,7 @@ from django.db import transaction
 from django.db.models import Sum, Q
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views import View
 from django.views.generic import ListView
 
@@ -74,12 +75,15 @@ class DailyAttendanceDashboard(AnyRoleMixin, View):
             "late": records_qs.filter(is_late=True).count(),
         }
 
+        status_filter = request.GET.get("status", "all").strip().lower()
+
         return render(request, self.template_name, {
             "roster_items": roster_items,
             "records": records_qs,
             "work_date": work_date,
             "summary": summary,
             "today": timezone.localdate(),
+            "status_filter": status_filter,
         })
 
 
@@ -97,7 +101,11 @@ class QuickAttendanceMarkView(AccountantOrSuperadminMixin, View):
             work_date = timezone.localdate()
 
         action_type = request.POST.get("action_type", "mark_present")
-        redirect_url = request.POST.get("next") or f"{redirect('attendance:daily_dashboard').url}?date={work_date}"
+        target_next = request.POST.get("next") or request.META.get("HTTP_REFERER")
+        if target_next and url_has_allowed_host_and_scheme(target_next, allowed_hosts={request.get_host()}):
+            redirect_url = target_next
+        else:
+            redirect_url = f"{redirect('attendance:daily_dashboard').url}?date={work_date}"
         settings_obj = CompanySettings.get()
         tz = timezone.get_current_timezone()
 

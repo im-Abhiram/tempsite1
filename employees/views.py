@@ -133,6 +133,19 @@ class EmployeeListView(AnyRoleMixin, ListView):
         ctx["q"] = self.request.GET.get("q", "")
         ctx["selected_dept"] = self.request.GET.get("dept", "")
         ctx["selected_status"] = self.request.GET.get("status", "")
+
+        today = timezone.localdate()
+        employees_list = ctx.get("employees")
+        if employees_list:
+            from attendance.models import AttendanceRecord
+            emp_ids = [e.id for e in employees_list]
+            records_map = {
+                r.employee_id: r
+                for r in AttendanceRecord.objects.filter(employee_id__in=emp_ids, work_date=today)
+            }
+            for emp in employees_list:
+                emp.today_record = records_map.get(emp.id)
+        ctx["today"] = today
         return ctx
 
 

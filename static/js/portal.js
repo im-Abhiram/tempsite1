@@ -145,6 +145,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const tableQuickFilters = document.querySelectorAll('[data-table-filter]');
   tableQuickFilters.forEach(function (input) {
     const tableId = input.getAttribute('data-table-filter');
+    if (tableId === 'dailyAttendanceTable') return; // Handled coordinately in Section 11
     const table = document.getElementById(tableId);
     if (!table) return;
 
@@ -201,4 +202,169 @@ document.addEventListener('DOMContentLoaded', function () {
       autoSubmit.form.submit();
     }
   });
+
+  // ── 11. Daily Attendance Tracker Filter (Pending/Unmarked, Present, Absent, etc.) ─
+  const dailyTable = document.getElementById('dailyAttendanceTable');
+  const statusFilterTriggers = document.querySelectorAll('[data-status-filter]');
+  const statCards = document.querySelectorAll('.stat-card[data-status-filter]');
+  const filterCountEl = document.getElementById('visibleRowCount');
+  const noMatchRow = document.getElementById('noFilterMatchRow');
+  const noMatchMsg = document.getElementById('noFilterMatchMessage');
+  const dailySearchInput = document.querySelector('[data-table-filter="dailyAttendanceTable"]');
+
+  if (dailyTable && statusFilterTriggers.length > 0) {
+    let currentFilter = 'all';
+
+    function updateAttendanceFilter() {
+      const rows = dailyTable.querySelectorAll('tbody tr:not(#noFilterMatchRow)');
+      const searchQuery = dailySearchInput ? dailySearchInput.value.toLowerCase().trim() : '';
+      let visibleCount = 0;
+
+      rows.forEach(function (row) {
+        const rowStatus = (row.getAttribute('data-status') || '').toLowerCase();
+        const isLate = row.getAttribute('data-late') === 'true';
+        const rowText = row.textContent.toLowerCase();
+
+        // 1. Status matching
+        let matchesStatus = false;
+        if (currentFilter === 'all') {
+          matchesStatus = true;
+        } else if (currentFilter === 'unmarked') {
+          matchesStatus = rowStatus === 'unmarked';
+        } else if (currentFilter === 'present') {
+          matchesStatus = rowStatus === 'present';
+        } else if (currentFilter === 'absent') {
+          matchesStatus = rowStatus === 'absent';
+        } else if (currentFilter === 'half_day') {
+          matchesStatus = rowStatus === 'half_day';
+        } else if (currentFilter === 'incomplete') {
+          matchesStatus = rowStatus === 'incomplete';
+        } else if (currentFilter === 'late') {
+          matchesStatus = isLate;
+        } else {
+          matchesStatus = rowStatus === currentFilter;
+        }
+
+        // 2. Search query matching
+        const matchesSearch = !searchQuery || rowText.includes(searchQuery);
+
+        if (matchesStatus && matchesSearch) {
+          row.style.display = '';
+          visibleCount++;
+        } else {
+          row.style.display = 'none';
+        }
+      });
+
+      if (filterCountEl) {
+        filterCountEl.textContent = visibleCount;
+      }
+
+      if (noMatchRow) {
+        if (visibleCount === 0 && rows.length > 0) {
+          noMatchRow.style.display = '';
+          if (noMatchMsg) {
+            let label = currentFilter;
+            if (currentFilter === 'unmarked') label = 'Pending / Unmarked';
+            else if (currentFilter === 'present') label = 'Present';
+            else if (currentFilter === 'absent') label = 'Absent';
+            else if (currentFilter === 'half_day') label = 'Half Day';
+            else if (currentFilter === 'incomplete') label = 'Incomplete';
+            else if (currentFilter === 'late') label = 'Late Arrivals';
+            noMatchMsg.textContent = `No staff records found for status "${label}"${searchQuery ? ` matching "${searchQuery}"` : ''}.`;
+          }
+        } else {
+          noMatchRow.style.display = 'none';
+        }
+      }
+
+      // Update active visual state on filter buttons
+      document.querySelectorAll('.filter-pill-btn').forEach(function (btn) {
+        const btnFilter = btn.getAttribute('data-status-filter');
+        if (btnFilter === currentFilter) {
+          btn.classList.add('active');
+          btn.classList.remove('btn-outline-secondary', 'btn-outline-warning', 'btn-outline-success', 'btn-outline-danger');
+          if (btnFilter === 'unmarked') btn.classList.add('btn-warning');
+          else if (btnFilter === 'present') btn.classList.add('btn-success');
+          else if (btnFilter === 'absent') btn.classList.add('btn-danger');
+          else btn.classList.add('btn-teal');
+        } else {
+          btn.classList.remove('active', 'btn-warning', 'btn-success', 'btn-danger', 'btn-teal');
+          if (btnFilter === 'unmarked') btn.classList.add('btn-outline-warning');
+          else if (btnFilter === 'present') btn.classList.add('btn-outline-success');
+          else if (btnFilter === 'absent') btn.classList.add('btn-outline-danger');
+          else btn.classList.add('btn-outline-secondary');
+        }
+      });
+
+      // Update active visual state on stat cards
+      statCards.forEach(function (card) {
+        const cardFilter = card.getAttribute('data-status-filter');
+        if (cardFilter === currentFilter) {
+          card.classList.add('active-stat-card');
+        } else {
+          card.classList.remove('active-stat-card');
+        }
+      });
+    }
+
+    // Click handler for status filter triggers (pills and stat cards)
+    document.addEventListener('click', function (e) {
+      const trigger = e.target.closest('[data-status-filter]');
+      if (!trigger) return;
+
+      const requestedFilter = trigger.getAttribute('data-status-filter');
+      if (!requestedFilter) return;
+
+      e.preventDefault();
+      // Clicking an already active stat-card resets back to 'all'
+      if (trigger.classList.contains('stat-card') && currentFilter === requestedFilter) {
+        currentFilter = 'all';
+      } else {
+        currentFilter = requestedFilter;
+      }
+
+      // Sync URL parameter (?status=...) without page reload
+      try {
+        const url = new URL(window.location.href);
+        if (currentFilter === 'all') {
+          url.searchParams.delete('status');
+        } else {
+          url.searchParams.set('status', currentFilter);
+        }
+        window.history.replaceState({}, '', url.toString());
+      } catch (err) {
+        // Fallback if URL API not supported
+      }
+
+      updateAttendanceFilter();
+    });
+
+    // Keyboard accessibility for stat cards (Enter or Space triggers filter)
+    statCards.forEach(function (card) {
+      card.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          card.click();
+        }
+      });
+    });
+
+    // Search input coordinates with status filter
+    if (dailySearchInput) {
+      dailySearchInput.addEventListener('input', updateAttendanceFilter);
+      dailySearchInput.addEventListener('keyup', updateAttendanceFilter);
+    }
+
+    // Initialize from URL parameter (?status=...)
+    try {
+      const initialUrl = new URL(window.location.href);
+      const urlStatus = initialUrl.searchParams.get('status');
+      if (urlStatus) {
+        currentFilter = urlStatus.toLowerCase();
+      }
+    } catch (err) {}
+
+    updateAttendanceFilter();
+  }
 });

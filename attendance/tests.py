@@ -290,4 +290,49 @@ class AttendanceCalculationsAndLockTests(TestCase):
         self.assertEqual(leave.duration_days, 3)
         self.assertEqual(leave.approved_by, self.accountant)
 
+    def test_quick_attendance_mark_preserves_next_and_referer(self):
+        """Quick mark redirects back to requested 'next' URL or HTTP_REFERER without forcing daily tracker."""
+        self.client.force_login(self.accountant)
+        work_date = datetime.date(2026, 11, 2)
+
+        # 1. With explicit next parameter pointing to employees directory
+        target_url = reverse("employees:employee_list")
+        res1 = self.client.post(reverse("attendance:quick_mark"), {
+            "employee_pk": self.emp.pk,
+            "work_date": str(work_date),
+            "action_type": "mark_present",
+            "next": target_url,
+        })
+        self.assertRedirects(res1, target_url)
+
+        # 2. With HTTP_REFERER header when next is not provided
+        work_date2 = datetime.date(2026, 11, 3)
+        referer_url = "http://testserver" + target_url
+        res2 = self.client.post(
+            reverse("attendance:quick_mark"),
+            {
+                "employee_pk": self.emp.pk,
+                "work_date": str(work_date2),
+                "action_type": "mark_absent",
+            },
+            HTTP_REFERER=referer_url,
+        )
+        self.assertRedirects(res2, referer_url)
+
+    def test_daily_dashboard_has_status_filters_and_data_attributes(self):
+        """Daily dashboard renders interactive filter buttons, stat cards and data-status attributes."""
+        self.client.force_login(self.accountant)
+        res = self.client.get(reverse("attendance:daily_dashboard"))
+        self.assertEqual(res.status_code, 200)
+
+        # Filter buttons & stat cards
+        self.assertContains(res, 'data-status-filter="unmarked"')
+        self.assertContains(res, 'data-status-filter="present"')
+        self.assertContains(res, 'data-status-filter="absent"')
+        self.assertContains(res, 'data-status-filter="all"')
+
+        # Row status attributes for client filtering
+        self.assertContains(res, 'data-status="unmarked"')
+
+
 

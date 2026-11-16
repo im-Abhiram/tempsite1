@@ -27,6 +27,7 @@
             {% csrf_token %}
             <input type="hidden" name="work_date" value="{{ work_date|date:'Y-m-d' }}">
             <input type="hidden" name="action_type" value="bulk_all_pending">
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
             <button type="submit" class="btn btn-success btn-sm d-flex align-items-center gap-1 shadow-sm" title="Single click to mark all {{ summary.unmarked }} remaining employees present with standard shift hours">
               <i class="bi bi-check2-all"></i> Mark All ({{ summary.unmarked }}) as Present
             </button>
@@ -44,10 +45,10 @@
   </div>
 </div>
 
-<!-- Daily Status Stats Row -->
+<!-- Daily Status Stats Row (Click any card to filter list) -->
 <div class="row g-3 mb-4">
   <div class="col-xl-2 col-md-4 col-6">
-    <div class="stat-card green p-3">
+    <div class="stat-card green clickable-card p-3" data-status-filter="present" role="button" tabindex="0" title="Click to view Present staff ({{ summary.present }})">
       <div class="stat-icon green" style="width: 40px; height: 40px; font-size: 18px;">
         <i class="bi bi-check2-circle"></i>
       </div>
@@ -59,7 +60,7 @@
   </div>
 
   <div class="col-xl-2 col-md-4 col-6">
-    <div class="stat-card {% if summary.unmarked > 0 %}amber{% else %}teal{% endif %} p-3">
+    <div class="stat-card {% if summary.unmarked > 0 %}amber{% else %}teal{% endif %} clickable-card p-3" data-status-filter="unmarked" role="button" tabindex="0" title="Click to view Pending / Unmarked staff ({{ summary.unmarked }})">
       <div class="stat-icon {% if summary.unmarked > 0 %}amber{% else %}teal{% endif %}" style="width: 40px; height: 40px; font-size: 18px;">
         <i class="bi bi-hourglass-top"></i>
       </div>
@@ -71,7 +72,7 @@
   </div>
 
   <div class="col-xl-2 col-md-4 col-6">
-    <div class="stat-card amber p-3">
+    <div class="stat-card amber clickable-card p-3" data-status-filter="half_day" role="button" tabindex="0" title="Click to view Half Day staff ({{ summary.half_day }})">
       <div class="stat-icon amber" style="width: 40px; height: 40px; font-size: 18px;">
         <i class="bi bi-hourglass-split"></i>
       </div>
@@ -83,7 +84,7 @@
   </div>
 
   <div class="col-xl-2 col-md-4 col-6">
-    <div class="stat-card red p-3">
+    <div class="stat-card red clickable-card p-3" data-status-filter="absent" role="button" tabindex="0" title="Click to view Absent staff ({{ summary.absent }})">
       <div class="stat-icon red" style="width: 40px; height: 40px; font-size: 18px;">
         <i class="bi bi-x-circle"></i>
       </div>
@@ -95,7 +96,7 @@
   </div>
 
   <div class="col-xl-2 col-md-4 col-6">
-    <div class="stat-card blue p-3">
+    <div class="stat-card blue clickable-card p-3" data-status-filter="incomplete" role="button" tabindex="0" title="Click to view Incomplete staff ({{ summary.incomplete }})">
       <div class="stat-icon blue" style="width: 40px; height: 40px; font-size: 18px;">
         <i class="bi bi-exclamation-diamond"></i>
       </div>
@@ -107,7 +108,7 @@
   </div>
 
   <div class="col-xl-2 col-md-4 col-6">
-    <div class="stat-card navy p-3">
+    <div class="stat-card navy clickable-card p-3" data-status-filter="late" role="button" tabindex="0" title="Click to view Late Arrivals ({{ summary.late }})">
       <div class="stat-icon navy" style="width: 40px; height: 40px; font-size: 18px;">
         <i class="bi bi-alarm"></i>
       </div>
@@ -121,12 +122,47 @@
 
 <!-- Attendance Records Table -->
 <div class="card-portal">
-  <div class="card-header-portal d-flex justify-content-between align-items-center">
+  <div class="card-header-portal d-flex flex-wrap justify-content-between align-items-center gap-2">
     <div class="d-flex align-items-center gap-2">
       <i class="bi bi-calendar2-check text-teal"></i>
       <h6 class="mb-0 fw-bold">Active Staff Attendance Roster for {{ work_date|date:"l, d F Y" }}</h6>
     </div>
-    <input type="text" data-table-filter="dailyAttendanceTable" class="form-control form-control-sm w-auto" placeholder="Quick search employee...">
+    <div class="d-flex align-items-center gap-2">
+      <input type="text" data-table-filter="dailyAttendanceTable" class="form-control form-control-sm w-auto" placeholder="Quick search employee...">
+    </div>
+  </div>
+
+  <!-- Status Filter Toolbar -->
+  <div class="px-3 py-2 border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2" style="background-color: rgba(255, 255, 255, 0.02);">
+    <div class="d-flex flex-wrap align-items-center gap-1" id="dailyStatusFilterBar">
+      <span class="small text-muted fw-semibold me-1"><i class="bi bi-funnel me-1"></i>Filter:</span>
+      <button type="button" class="btn btn-sm btn-outline-secondary filter-pill-btn active" data-status-filter="all">
+        All <span class="badge bg-secondary ms-1">{{ summary.total_active }}</span>
+      </button>
+      <button type="button" class="btn btn-sm btn-outline-warning filter-pill-btn" data-status-filter="unmarked">
+        <i class="bi bi-hourglass-top me-1"></i>Pending / Unmarked <span class="badge bg-warning text-dark ms-1">{{ summary.unmarked }}</span>
+      </button>
+      <button type="button" class="btn btn-sm btn-outline-success filter-pill-btn" data-status-filter="present">
+        <i class="bi bi-check2-circle me-1"></i>Present <span class="badge bg-success ms-1">{{ summary.present }}</span>
+      </button>
+      <button type="button" class="btn btn-sm btn-outline-danger filter-pill-btn" data-status-filter="absent">
+        <i class="bi bi-x-circle me-1"></i>Absent <span class="badge bg-danger ms-1">{{ summary.absent }}</span>
+      </button>
+      <button type="button" class="btn btn-sm btn-outline-secondary filter-pill-btn" data-status-filter="half_day">
+        Half Day <span class="badge bg-secondary ms-1">{{ summary.half_day }}</span>
+      </button>
+      <button type="button" class="btn btn-sm btn-outline-secondary filter-pill-btn" data-status-filter="incomplete">
+        Incomplete <span class="badge bg-secondary ms-1">{{ summary.incomplete }}</span>
+      </button>
+      {% if summary.late > 0 %}
+      <button type="button" class="btn btn-sm btn-outline-secondary filter-pill-btn" data-status-filter="late">
+        <i class="bi bi-alarm me-1"></i>Late <span class="badge bg-secondary ms-1">{{ summary.late }}</span>
+      </button>
+      {% endif %}
+    </div>
+    <div class="small text-muted" id="filterStatusCount">
+      Showing <span id="visibleRowCount" class="fw-bold text-teal">{{ summary.total_active }}</span> of {{ summary.total_active }} staff
+    </div>
   </div>
 
   <div class="table-responsive">
@@ -145,9 +181,19 @@
         </tr>
       </thead>
       <tbody>
+        <tr id="noFilterMatchRow" style="display: none;">
+          <td colspan="9" class="text-center py-5 text-muted">
+            <i class="bi bi-funnel text-teal fs-2 d-block mb-2"></i>
+            <h6 class="fw-semibold mb-1" id="noFilterMatchMessage">No records match the selected filter.</h6>
+            <p class="small text-muted mb-3">Try choosing a different status filter or clearing your search query.</p>
+            <button type="button" class="btn btn-sm btn-outline-teal" data-status-filter="all">
+              <i class="bi bi-arrow-counterclockwise me-1"></i>Reset Filter to View All
+            </button>
+          </td>
+        </tr>
         {% for item in roster_items %}
         {% with emp=item.employee rec=item.record %}
-        <tr>
+        <tr data-status="{% if not item.is_marked %}unmarked{% else %}{{ rec.status|lower }}{% endif %}" {% if rec and rec.is_late %}data-late="true"{% endif %}>
           <td>
             <div class="d-flex align-items-center gap-2">
               {% if emp.photo %}
@@ -243,6 +289,7 @@
                   <input type="hidden" name="employee_pk" value="{{ emp.pk }}">
                   <input type="hidden" name="work_date" value="{{ work_date|date:'Y-m-d' }}">
                   <input type="hidden" name="action_type" value="clock_out">
+                  <input type="hidden" name="next" value="{{ request.get_full_path }}">
                   <button type="submit" class="btn btn-warning btn-sm py-1 px-2 fw-semibold me-1" title="Clock out now">
                     <i class="bi bi-box-arrow-right me-1"></i>Clock Out
                   </button>
@@ -267,6 +314,7 @@
                   <input type="hidden" name="employee_pk" value="{{ emp.pk }}">
                   <input type="hidden" name="work_date" value="{{ work_date|date:'Y-m-d' }}">
                   <input type="hidden" name="action_type" value="mark_present">
+                  <input type="hidden" name="next" value="{{ request.get_full_path }}">
                   <button type="submit" class="btn btn-sm btn-success py-1 px-2 fw-semibold d-inline-flex align-items-center gap-1 shadow-sm" title="Single click to mark Present with shift hours">
                     <i class="bi bi-check2-circle"></i> Mark Present
                   </button>
@@ -276,6 +324,7 @@
                   <input type="hidden" name="employee_pk" value="{{ emp.pk }}">
                   <input type="hidden" name="work_date" value="{{ work_date|date:'Y-m-d' }}">
                   <input type="hidden" name="action_type" value="mark_absent">
+                  <input type="hidden" name="next" value="{{ request.get_full_path }}">
                   <button type="submit" class="btn btn-sm btn-outline-danger py-1 px-2 fw-semibold d-inline-flex align-items-center gap-1 shadow-sm" title="Single click to mark Absent" data-confirm="Mark {{ emp.full_name }} as ABSENT?">
                     <i class="bi bi-x-circle"></i> Mark Absent
                   </button>

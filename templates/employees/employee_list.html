@@ -121,40 +121,65 @@
             {% endif %}
           </td>
           <td class="text-end">
-            <div class="btn-group btn-group-sm">
-              <a href="{% url 'employees:employee_detail' emp.pk %}" class="btn btn-outline-secondary" title="View Profile">
-                <i class="bi bi-eye"></i>
-              </a>
-              {% if not is_owner %}
-              <form method="post" action="{% url 'attendance:quick_mark' %}" class="d-inline">
-                {% csrf_token %}
-                <input type="hidden" name="employee_pk" value="{{ emp.pk }}">
-                <input type="hidden" name="action_type" value="mark_present">
-                <button type="submit" class="btn btn-outline-success" title="Quick 1-Click Mark Present Today">
-                  <i class="bi bi-check-circle"></i>
-                </button>
-              </form>
-              <form method="post" action="{% url 'attendance:quick_mark' %}" class="d-inline">
-                {% csrf_token %}
-                <input type="hidden" name="employee_pk" value="{{ emp.pk }}">
-                <input type="hidden" name="action_type" value="mark_absent">
-                <button type="submit" class="btn btn-outline-danger" title="Quick 1-Click Mark Absent Today" data-confirm="Mark {{ emp.full_name }} as ABSENT today?">
-                  <i class="bi bi-x-circle"></i>
-                </button>
-              </form>
-              <a href="{% url 'attendance:attendance_mark_emp' emp.pk %}" class="btn btn-outline-teal" title="Manual Attendance Log (Overtime & Remarks)">
-                <i class="bi bi-clock-history"></i>
-              </a>
-              <a href="{% url 'employees:employee_edit' emp.pk %}" class="btn btn-outline-secondary" title="Edit Employee">
-                <i class="bi bi-pencil"></i>
-              </a>
-              <a href="{% url 'employees:salary_update' emp.pk %}" class="btn btn-outline-secondary" title="Adjust Salary Rate">
-                <i class="bi bi-currency-rupee"></i>
-              </a>
-              <a href="{% url 'employees:employee_delete' emp.pk %}" class="btn btn-outline-danger" title="Delete Employee">
-                <i class="bi bi-trash3"></i>
-              </a>
+            <div class="d-inline-flex align-items-center gap-1">
+              {% if not is_owner and emp.today_record %}
+                {% if emp.today_record.status == 'PRESENT' %}
+                  <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" style="font-size: 11px;" title="Marked Present Today ({{ emp.today_record.net_working_hours }} hrs)">
+                    <i class="bi bi-check2-circle me-1"></i>Present
+                  </span>
+                {% elif emp.today_record.status == 'ABSENT' %}
+                  <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1" style="font-size: 11px;" title="Marked Absent Today">
+                    <i class="bi bi-x-circle me-1"></i>Absent
+                  </span>
+                {% elif emp.today_record.status == 'HALF_DAY' %}
+                  <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1" style="font-size: 11px;" title="Half Day Today">
+                    <i class="bi bi-hourglass-split me-1"></i>Half Day
+                  </span>
+                {% else %}
+                  <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1" style="font-size: 11px;" title="{{ emp.today_record.get_status_display }} Today">
+                    {{ emp.today_record.get_status_display }}
+                  </span>
+                {% endif %}
               {% endif %}
+              <div class="btn-group btn-group-sm">
+                <a href="{% url 'employees:employee_detail' emp.pk %}" class="btn btn-outline-secondary" title="View Profile">
+                  <i class="bi bi-eye"></i>
+                </a>
+                {% if not is_owner %}
+                {% if not emp.today_record %}
+                <form method="post" action="{% url 'attendance:quick_mark' %}" class="d-inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="employee_pk" value="{{ emp.pk }}">
+                  <input type="hidden" name="action_type" value="mark_present">
+                  <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                  <button type="submit" class="btn btn-outline-success" title="Quick 1-Click Mark Present Today">
+                    <i class="bi bi-check-circle"></i>
+                  </button>
+                </form>
+                <form method="post" action="{% url 'attendance:quick_mark' %}" class="d-inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="employee_pk" value="{{ emp.pk }}">
+                  <input type="hidden" name="action_type" value="mark_absent">
+                  <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                  <button type="submit" class="btn btn-outline-danger" title="Quick 1-Click Mark Absent Today" data-confirm="Mark {{ emp.full_name }} as ABSENT today?">
+                    <i class="bi bi-x-circle"></i>
+                  </button>
+                </form>
+                {% endif %}
+                <a href="{% url 'attendance:attendance_mark_emp' emp.pk %}" class="btn btn-outline-teal" title="Manual Attendance Log (Overtime & Remarks)">
+                  <i class="bi bi-clock-history"></i>
+                </a>
+                <a href="{% url 'employees:employee_edit' emp.pk %}" class="btn btn-outline-secondary" title="Edit Employee">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                <a href="{% url 'employees:salary_update' emp.pk %}" class="btn btn-outline-secondary" title="Adjust Salary Rate">
+                  <i class="bi bi-currency-rupee"></i>
+                </a>
+                <a href="{% url 'employees:employee_delete' emp.pk %}" class="btn btn-outline-danger" title="Delete Employee">
+                  <i class="bi bi-trash3"></i>
+                </a>
+                {% endif %}
+              </div>
             </div>
           </td>
         </tr>
