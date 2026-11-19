@@ -19,4 +19,5 @@ urlpatterns = [
     path("leaves/", views.LeaveListView.as_view(), name="leave_list"),
     path("leaves/add/", views.LeaveCreateView.as_view(), name="leave_create"),
     path("leaves/<int:pk>/status/", views.LeaveStatusUpdateView.as_view(), name="leave_status"),
+    path("leaves/<int:pk>/delete/", views.LeaveDeleteView.as_view(), name="leave_delete"),
 ]

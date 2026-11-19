@@ -16,7 +16,7 @@ from employees.models import (
 )
 from attendance.models import (
     AttendanceRecord, AttendanceStatus, AttendanceEntryMethod,
-    AttendanceCorrectionLog,
+    AttendanceCorrectionLog, LeaveRecord, LeaveType, LeaveStatus,
 )
 
 User = get_user_model()
@@ -414,6 +414,172 @@ class AttendanceCalculationsAndLockTests(TestCase):
         self.assertGreaterEqual(summary["unmarked"], 0)
         self.assertEqual(summary["unmarked"], 0)
         self.assertEqual(summary["present"], 2)
+
+
+class LeaveAttendanceSyncTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.superadmin = User.objects.create_superadmin(
+            username="admin", password="StrongPassword123!"
+        )
+        self.accountant = User.objects.create_user(
+            username="acct", password="StrongPassword123!", role=Role.ACCOUNTANT
+        )
+        self.dept = Department.objects.create(name="Operations", code="OPS")
+        self.desig = Designation.objects.create(name="Executive", department=self.dept)
+        self.shift = Shift.objects.create(
+            name="General Shift",
+            start_time=datetime.time(9, 0),
+            end_time=datetime.time(18, 0),
+            unpaid_break_minutes=60,
+        )
+        self.emp = Employee.objects.create(
+            employee_id="EMP-5001",
+            first_name="Ananya",
+            last_name="Menon",
+            phone="9876540001",
+            residential_address="Kochi, Kerala",
+            emergency_contact_name="Suresh",
+            emergency_contact_phone="9876540002",
+            department=self.dept,
+            designation=self.desig,
+            assigned_shift=self.shift,
+            date_of_joining=datetime.date(2025, 1, 1),
+            employment_status=EmploymentStatus.ACTIVE,
+            employment_type=EmploymentType.FULL_TIME,
+            salary_calculation_method=SalaryMethod.HOURLY,
+            base_salary_rate=Decimal("200.00"),
+            standard_working_hours=Decimal("8.00"),
+            created_by=self.superadmin,
+        )
+
+    def test_leave_creation_auto_marks_attendance_absent(self):
+        start = datetime.date(2026, 12, 1)
+        end = datetime.date(2026, 12, 3)
+
+        leave = LeaveRecord.objects.create(
+            employee=self.emp,
+            leave_type=LeaveType.CASUAL_LEAVE,
+            start_date=start,
+            end_date=end,
+            reason="Family function",
+            status=LeaveStatus.APPROVED,
+            approved_by=self.accountant,
+        )
+
+        records = AttendanceRecord.objects.filter(employee=self.emp).order_by("work_date")
+        self.assertEqual(records.count(), 3)
+        for rec in records:
+            self.assertEqual(rec.status, AttendanceStatus.ABSENT)
+            self.assertEqual(rec.net_working_hours, Decimal("0.0000"))
+            self.assertEqual(rec.regular_hours, Decimal("0.0000"))
+            self.assertEqual(rec.overtime_hours, Decimal("0.0000"))
+            self.assertIn("Leave (Casual Leave): Family function", rec.correction_reason)
+
+        # Check daily dashboard reflection
+        self.client.force_login(self.accountant)
+        res = self.client.get(reverse("attendance:daily_dashboard") + f"?date={start}")
+        self.assertEqual(res.status_code, 200)
+        summary = res.context["summary"]
+        self.assertEqual(summary["absent"], 1)
+        self.assertEqual(summary["unmarked"], 0)
+
+    def test_leave_via_web_view_auto_marks_attendance(self):
+        self.client.force_login(self.accountant)
+        post_data = {
+            "employee": self.emp.pk,
+            "leave_type": LeaveType.PAID_LEAVE,
+            "start_date": "2026-12-10",
+            "end_date": "2026-12-10",
+            "reason": "Personal work",
+            "status": "APPROVED",
+        }
+        res = self.client.post(reverse("attendance:leave_create"), post_data)
+        self.assertRedirects(res, reverse("attendance:leave_list"))
+
+        rec = AttendanceRecord.objects.get(
+            employee=self.emp, work_date=datetime.date(2026, 12, 10)
+        )
+        self.assertEqual(rec.status, AttendanceStatus.ABSENT)
+        self.assertIn("Leave (Paid Leave)", rec.correction_reason)
+
+    def test_leave_rejection_reverts_attendance(self):
+        start = datetime.date(2026, 12, 15)
+        leave = LeaveRecord.objects.create(
+            employee=self.emp,
+            leave_type=LeaveType.SICK_LEAVE,
+            start_date=start,
+            end_date=start,
+            reason="Fever",
+            status=LeaveStatus.APPROVED,
+            approved_by=self.accountant,
+        )
+        self.assertTrue(AttendanceRecord.objects.filter(employee=self.emp, work_date=start).exists())
+
+        # Reject the leave
+        self.client.force_login(self.accountant)
+        res = self.client.post(
+            reverse("attendance:leave_status", kwargs={"pk": leave.pk}),
+            {"status": "REJECTED"},
+        )
+        self.assertRedirects(res, reverse("attendance:leave_list"))
+
+        # Absent attendance record must be reverted/deleted
+        self.assertFalse(AttendanceRecord.objects.filter(employee=self.emp, work_date=start).exists())
+
+        # Daily dashboard should now show employee as unmarked
+        dash_res = self.client.get(reverse("attendance:daily_dashboard") + f"?date={start}")
+        self.assertEqual(dash_res.context["summary"]["unmarked"], 1)
+        self.assertEqual(dash_res.context["summary"]["absent"], 0)
+
+    def test_leave_deletion_reverts_attendance(self):
+        start = datetime.date(2026, 12, 20)
+        leave = LeaveRecord.objects.create(
+            employee=self.emp,
+            leave_type=LeaveType.UNPAID_LEAVE,
+            start_date=start,
+            end_date=start,
+            reason="Travel",
+            status=LeaveStatus.APPROVED,
+            approved_by=self.accountant,
+        )
+        self.assertTrue(AttendanceRecord.objects.filter(employee=self.emp, work_date=start).exists())
+
+        # Delete the leave
+        self.client.force_login(self.accountant)
+        res = self.client.post(reverse("attendance:leave_delete", kwargs={"pk": leave.pk}))
+        self.assertRedirects(res, reverse("attendance:leave_list"))
+        self.assertFalse(LeaveRecord.objects.filter(pk=leave.pk).exists())
+        self.assertFalse(AttendanceRecord.objects.filter(employee=self.emp, work_date=start).exists())
+
+    def test_leave_does_not_overwrite_payroll_locked_record(self):
+        work_date = datetime.date(2026, 12, 25)
+        locked_rec = AttendanceRecord.objects.create(
+            employee=self.emp,
+            work_date=work_date,
+            status=AttendanceStatus.PRESENT,
+            net_working_hours=Decimal("8.0000"),
+            regular_hours=Decimal("8.0000"),
+            is_locked_by_payroll=True,
+            payroll_period_id=1,
+            created_by=self.accountant,
+        )
+
+        leave = LeaveRecord.objects.create(
+            employee=self.emp,
+            leave_type=LeaveType.PAID_LEAVE,
+            start_date=work_date,
+            end_date=work_date,
+            reason="Holiday",
+            status=LeaveStatus.APPROVED,
+            approved_by=self.accountant,
+        )
+
+        locked_rec.refresh_from_db()
+        self.assertEqual(locked_rec.status, AttendanceStatus.PRESENT)
+        self.assertEqual(locked_rec.net_working_hours, Decimal("8.0000"))
+        self.assertTrue(locked_rec.is_locked_by_payroll)
+
 
 
 

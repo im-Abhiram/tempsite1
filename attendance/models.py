@@ -5,6 +5,7 @@ Supports overnight shifts, correct duration arithmetic,
 immutable correction audit trail, and payroll locking.
 """
 
+import datetime
 import logging
 from decimal import Decimal, ROUND_HALF_UP
 from django.db import models
@@ -289,6 +290,10 @@ class LeaveRecord(models.Model):
             models.Index(fields=["status", "start_date"]),
         ]
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._original_status = self.status
+
     def __str__(self):
         return f"{self.employee.employee_id} — {self.get_leave_type_display()} ({self.start_date} to {self.end_date})"
 
@@ -297,6 +302,115 @@ class LeaveRecord(models.Model):
         if self.end_date and self.start_date:
             return (self.end_date - self.start_date).days + 1
         return 1
+
+    def sync_to_attendance(self):
+        """
+        Automatically mark the employee as ABSENT in AttendanceRecord
+        for every day within the leave range [start_date, end_date].
+        Never overwrites records locked by finalized payroll.
+        """
+        if not self.start_date or not self.end_date or self.start_date > self.end_date:
+            return 0
+
+        reason_header = f"Leave ({self.get_leave_type_display()})"
+        reason_text = f"{reason_header}: {self.reason}".strip() if self.reason else reason_header
+
+        current_date = self.start_date
+        records_affected = 0
+
+        while current_date <= self.end_date:
+            rec, created = AttendanceRecord.objects.get_or_create(
+                employee=self.employee,
+                work_date=current_date,
+                defaults={
+                    "status": AttendanceStatus.ABSENT,
+                    "entry_method": AttendanceEntryMethod.SYSTEM,
+                    "check_in": None,
+                    "check_out": None,
+                    "break_duration_minutes": 0,
+                    "net_working_hours": Decimal("0.0000"),
+                    "regular_hours": Decimal("0.0000"),
+                    "overtime_hours": Decimal("0.0000"),
+                    "is_late": False,
+                    "late_by_minutes": 0,
+                    "is_early_departure": False,
+                    "early_by_minutes": 0,
+                    "correction_reason": reason_text,
+                    "created_by": self.approved_by,
+                },
+            )
+            if not created:
+                if not rec.is_locked_by_payroll:
+                    rec.status = AttendanceStatus.ABSENT
+                    rec.entry_method = AttendanceEntryMethod.SYSTEM
+                    rec.check_in = None
+                    rec.check_out = None
+                    rec.break_duration_minutes = 0
+                    rec.net_working_hours = Decimal("0.0000")
+                    rec.regular_hours = Decimal("0.0000")
+                    rec.overtime_hours = Decimal("0.0000")
+                    rec.is_late = False
+                    rec.late_by_minutes = 0
+                    rec.is_early_departure = False
+                    rec.early_by_minutes = 0
+                    rec.correction_reason = reason_text
+                    if self.approved_by:
+                        rec.last_modified_by = self.approved_by
+                    rec.save()
+                    records_affected += 1
+            else:
+                records_affected += 1
+
+            current_date += datetime.timedelta(days=1)
+
+        return records_affected
+
+    def revert_attendance(self):
+        """
+        Reverts attendance records created for this leave if the leave is
+        rejected, reset to pending, or deleted.
+        Only removes records that were marked ABSENT and have no check-in/check-out punches,
+        and are not locked by payroll.
+        """
+        if not self.start_date or not self.end_date:
+            return 0
+
+        current_date = self.start_date
+        records_reverted = 0
+
+        while current_date <= self.end_date:
+            rec = AttendanceRecord.objects.filter(
+                employee=self.employee,
+                work_date=current_date,
+            ).first()
+
+            if rec and not rec.is_locked_by_payroll:
+                if (
+                    rec.status == AttendanceStatus.ABSENT
+                    and not rec.check_in
+                    and not rec.check_out
+                    and (rec.correction_reason or "").startswith("Leave (")
+                ):
+                    rec.delete()
+                    records_reverted += 1
+            current_date += datetime.timedelta(days=1)
+
+        return records_reverted
+
+    def save(self, *args, **kwargs):
+        old_status = getattr(self, "_original_status", None)
+        super().save(*args, **kwargs)
+        self._original_status = self.status
+
+        if self.status == LeaveStatus.APPROVED:
+            self.sync_to_attendance()
+        elif old_status == LeaveStatus.APPROVED and self.status in (LeaveStatus.REJECTED, LeaveStatus.PENDING):
+            self.revert_attendance()
+
+    def delete(self, *args, **kwargs):
+        if self.status == LeaveStatus.APPROVED:
+            self.revert_attendance()
+        return super().delete(*args, **kwargs)
 
 
 # Model aliases per specification

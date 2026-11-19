@@ -640,7 +640,14 @@ class LeaveCreateView(AccountantOrSuperadminMixin, View):
                 ip_address=request.META.get("REMOTE_ADDR"),
                 extra={"employee": leave.employee.employee_id, "type": leave.leave_type},
             )
-            messages.success(request, f"Leave recorded for {leave.employee.full_name}.")
+            if leave.status == "APPROVED":
+                messages.success(
+                    request,
+                    f"Leave recorded for {leave.employee.full_name}. "
+                    f"Automatically marked as Absent for {leave.duration_days} day(s) on Daily Tracker and Attendance records."
+                )
+            else:
+                messages.success(request, f"Leave recorded for {leave.employee.full_name} ({leave.get_status_display()}).")
             return redirect("attendance:leave_list")
         return render(request, self.template_name, {"form": form})
 
@@ -651,10 +658,39 @@ class LeaveStatusUpdateView(AccountantOrSuperadminMixin, View):
         leave = get_object_or_404(LeaveRecord, pk=pk)
         new_status = request.POST.get("status")
         if new_status in ("APPROVED", "REJECTED", "PENDING"):
+            old_status = leave.status
             leave.status = new_status
             if new_status == "APPROVED":
                 leave.approved_by = request.user
             leave.save()
-            messages.success(request, f"Leave status updated to {new_status}.")
+            audit_log(
+                actor=request.user, action="ATTENDANCE_CORRECT",
+                target_model="LeaveRecord", target_id=str(leave.pk),
+                ip_address=request.META.get("REMOTE_ADDR"),
+                extra={"employee": leave.employee.employee_id, "status": new_status, "previous_status": old_status},
+            )
+            if new_status == "APPROVED":
+                messages.success(request, f"Leave approved. Employee automatically marked as Absent for {leave.duration_days} day(s).")
+            elif old_status == "APPROVED" and new_status in ("REJECTED", "PENDING"):
+                messages.success(request, f"Leave status updated to {new_status}. Generated absent attendance records reverted.")
+            else:
+                messages.success(request, f"Leave status updated to {new_status}.")
+        return redirect("attendance:leave_list")
+
+
+class LeaveDeleteView(AccountantOrSuperadminMixin, View):
+    def post(self, request, pk):
+        from .models import LeaveRecord
+        leave = get_object_or_404(LeaveRecord, pk=pk)
+        emp_name = leave.employee.full_name
+        with transaction.atomic():
+            leave.delete()
+            audit_log(
+                actor=request.user, action="ATTENDANCE_CORRECT",
+                target_model="LeaveRecord", target_id=str(pk),
+                ip_address=request.META.get("REMOTE_ADDR"),
+                extra={"employee": emp_name, "action": "LEAVE_DELETE"},
+            )
+        messages.success(request, f"Leave record for {emp_name} deleted and attendance records reverted.")
         return redirect("attendance:leave_list")
 
